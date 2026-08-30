@@ -12,7 +12,7 @@ export default function DynamicLandingPage() {
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState('')
 
-  // عداد تنازلي
+  // العداد التنازلي
   const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 35, seconds: 20 })
 
   // بيانات النموذج
@@ -163,6 +163,11 @@ export default function DynamicLandingPage() {
     window.location.href = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText)}`
   }
 
+  const scrollToForm = () => {
+    const el = document.getElementById('order-form')
+    if (el) el.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
       {/* Pixels */}
@@ -208,7 +213,7 @@ export default function DynamicLandingPage() {
         </Script>
       )}
 
-      {/* شريط العداد التنازلي المخصص */}
+      {/* الشريط العلوي */}
       <div className="bg-gradient-to-r from-emerald-700 to-teal-800 text-white text-xs sm:text-sm font-bold py-2.5 px-4 text-center sticky top-0 z-40 shadow flex items-center justify-center gap-2">
         <span>{isProduct ? '⚡ عرض خاص ولفترة محدودة - ينتهي خلال:' : '⚡ سارع بتأكيد الحجز - المواعيد المتاحة محدودة اليوم:'}</span>
         <span className="bg-black/30 px-2 py-0.5 rounded dir-ltr font-mono">
@@ -217,21 +222,16 @@ export default function DynamicLandingPage() {
       </div>
 
       <div className="max-w-xl mx-auto bg-white shadow-xl min-h-screen">
-        {/* الصورة الرئيسية ومعرض الصور */}
+        {/* معرض الصور */}
         {selectedImage && (
           <div className="space-y-2 p-3 bg-slate-50">
             <div className="relative w-full aspect-square bg-slate-200 rounded-2xl overflow-hidden shadow-sm">
-              <img
-                src={selectedImage}
-                alt={pageData.headline}
-                className="w-full h-full object-cover transition duration-300"
-              />
+              <img src={selectedImage} alt={pageData.headline} className="w-full h-full object-cover transition duration-300" />
               <span className="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-black px-3 py-1.5 rounded-full shadow">
                 {isProduct ? 'خصم خاص اليوم 🔥' : 'متاح للحجز الآن ✅'}
               </span>
             </div>
 
-            {/* المعرض */}
             {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto py-1">
                 {allImages.map((img, idx) => (
@@ -239,9 +239,7 @@ export default function DynamicLandingPage() {
                     key={idx}
                     type="button"
                     onClick={() => setSelectedImage(img)}
-                    className={`w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition ${
-                      selectedImage === img ? 'border-emerald-600 ring-2 ring-emerald-500/30' : 'border-transparent opacity-70 hover:opacity-100'
-                    }`}
+                    className={`w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 border-2 transition ${selectedImage === img ? 'border-emerald-600 ring-2 ring-emerald-500/30' : 'border-transparent opacity-70 hover:opacity-100'}`}
                   >
                     <img src={img} alt="معاينة" className="w-full h-full object-cover" />
                   </button>
@@ -267,7 +265,6 @@ export default function DynamicLandingPage() {
               {pageData.headline}
             </h1>
 
-            {/* عرض السعر فقط في حال وجود سعر مدخل حقيقي */}
             {hasPrice && (
               <div className="mt-4 flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div>
@@ -285,7 +282,6 @@ export default function DynamicLandingPage() {
             )}
           </div>
 
-          {/* شريط الإشغال/المخزون المتكيف */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-bold">
               <span className={isProduct ? 'text-red-600' : 'text-emerald-700'}>
@@ -298,7 +294,7 @@ export default function DynamicLandingPage() {
             </div>
           </div>
 
-          {/* شارات الثقة المتكيفة حسب نوع النشاط */}
+          {/* شارات الثقة */}
           {isProduct ? (
             <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
@@ -342,7 +338,7 @@ export default function DynamicLandingPage() {
             </div>
           )}
 
-          {/* نموذج الحجز / الطلب */}
+          {/* النموذج */}
           <div id="order-form" className="bg-emerald-50/60 p-5 rounded-3xl border-2 border-emerald-500/20">
             <div className="text-center mb-4">
               <h2 className="text-lg font-extrabold text-slate-900">
@@ -423,7 +419,7 @@ export default function DynamicLandingPage() {
         </div>
       </div>
 
-      {/* الزر العائم السفلي المخصص */}
+      {/* الشريط العائم */}
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t border-slate-200 z-50 flex items-center justify-between gap-4 max-w-xl mx-auto">
         {hasPrice ? (
           <div>
@@ -434,5 +430,13 @@ export default function DynamicLandingPage() {
           <span className="text-xs font-bold text-slate-600">حجز مباشر ومؤكد ⚡</span>
         )}
         <button
-          onClick={() => {
-            const form
+          type="button"
+          onClick={scrollToForm}
+          className="flex-1 py-3 bg-emerald-600 text-white font-extrabold rounded-xl shadow-md text-sm text-center"
+        >
+                    {isProduct ? 'اطلب الآن قبل انتهاء الخصم ⚡' : 'احجز موعدك الآن ⚡'}
+        </button>
+      </div>
+    </div>
+  )
+}
