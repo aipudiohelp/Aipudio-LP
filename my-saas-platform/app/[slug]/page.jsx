@@ -1,156 +1,277 @@
 'use client'
-import { useState, useEffect, useRef } from 'react'
-import { useParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import Script from 'next/script'
 
-export default function DynamicLandingPage() {
-  const params = useParams()
-  const rawSlug = params?.slug ? (Array.isArray(params.slug) ? params.slug[0] : params.slug) : ''
+const GOVERNORATES = [
+  { name: 'القاهرة', zone: 'cairo' },
+  { name: 'الجيزة', zone: 'cairo' },
+  { name: 'الإسكندرية', zone: 'delta' },
+  { name: 'الدقهلية (المنصورة)', zone: 'delta' },
+  { name: 'الغربية (طنطا)', zone: 'delta' },
+  { name: 'الشرقية (الزقازيق)', zone: 'delta' },
+  { name: 'القليوبية (بنها)', zone: 'delta' },
+  { name: 'المنوفية', zone: 'delta' },
+  { name: 'البحيرة', zone: 'delta' },
+  { name: 'كفر الشيخ', zone: 'delta' },
+  { name: 'دمياط', zone: 'delta' },
+  { name: 'بورسعيد', zone: 'delta' },
+  { name: 'الإسماعيلية', zone: 'delta' },
+  { name: 'السويس', zone: 'delta' },
+  { name: 'الفيوم', zone: 'upper' },
+  { name: 'بني سويف', zone: 'upper' },
+  { name: 'المنيا', zone: 'upper' },
+  { name: 'أسيوط', zone: 'upper' },
+  { name: 'سوهاج', zone: 'upper' },
+  { name: 'قنا', zone: 'upper' },
+  { name: 'الأقصر', zone: 'upper' },
+  { name: 'أسوان', zone: 'upper' },
+  { name: 'مطروح والساحل الشمالي', zone: 'remote' },
+  { name: 'البحر الأحمر والغردقة', zone: 'remote' },
+  { name: 'شمال وجنوب سيناء', zone: 'remote' },
+  { name: 'الوادي الجديد', zone: 'remote' },
+]
 
-  const [pageData, setPageData] = useState(null)
+export default function LandingView({ params }) {
+  const [page, setPage] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [selectedImage, setSelectedImage] = useState('')
-  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 35, seconds: 20 })
+  const [notFound, setNotFound] = useState(false)
+  const [activeImage, setActiveImage] = useState('')
 
-  // بيانات النموذج والحجز
-  const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
-  const [address, setAddress] = useState('')
+  // مدخلات العميل
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
+  const [customerAddress, setCustomerAddress] = useState('')
   const [selectedBranch, setSelectedBranch] = useState('')
-  const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState('')
-  const [quantity, setQuantity] = useState(1)
-  const [notes, setNotes] = useState('')
+  const [selectedGov, setSelectedGov] = useState(GOVERNORATES[0].name)
 
-  const viewCounted = useRef(false)
-
-  // الحصول على تاريخ اليوم بصيغة YYYY-MM-DD لمنع اختيار تواريخ سابقة
-  const todayStr = new Date().toISOString().split('T')[0]
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft(p => p.seconds > 0 ? { ...p, seconds: p.seconds - 1 } : p.minutes > 0 ? { ...p, minutes: 59, seconds: 59 } : p.hours > 0 ? { hours: p.hours - 1, minutes: 59, seconds: 59 } : { hours: 3, minutes: 45, seconds: 0 })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+  // مدخلات الكوبون
+  const [couponInput, setCouponInput] = useState('')
+  const [appliedCoupon, setAppliedCoupon] = useState(null)
+  const [couponError, setCouponError] = useState('')
 
   useEffect(() => {
-    let isMounted = true
-    async function fetchPage() {
-      if (!rawSlug) return isMounted && setLoading(false)
-      try {
-        let cleanSlug = decodeURIComponent(rawSlug).toLowerCase().trim()
-        const { data } = await supabase
-          .from('landing_pages')
-          .select('*, profiles:user_id(is_active, subscription_end)')
-          .ilike('slug', cleanSlug)
-          .eq('is_published', true)
-          .maybeSingle()
+    async function loadPage() {
+      const resolvedParams = await params
+      const slug = resolvedParams.slug
 
-        if (isMounted) {
-          if (data) {
-            const up = data.profiles
-            const end = up?.subscription_end ? new Date(up.subscription_end) : null
-            if (up && (!up.is_active || (end && end < new Date()))) {
-              setPageData(null)
-            } else {
-              setPageData(data)
-              setSelectedImage(data.product_image_url || '')
-              
-              // تحديد الفرع الافتراضي
-              const branchList = (data.branches || '').split(',').map(b => b.trim()).filter(Boolean)
-              if (branchList.length > 0) setSelectedBranch(branchList[0])
+      const { data, error } = await supabase
+        .from('landing_pages')
+        .select('*')
+        .eq('slug', slug)
+        .single()
 
-              // تحديد أول توقيت افتراضي
-              const timesList = (data.available_times || '').split(',').map(t => t.trim()).filter(Boolean)
-              if (timesList.length > 0) setSelectedTime(timesList[0])
+      if (error || !data) {
+        setNotFound(true)
+        setLoading(false)
+        return
+      }
 
-              if (!viewCounted.current) {
-                supabase.rpc('increment_view', { p_slug: cleanSlug }).then(() => {})
-                viewCounted.current = true
-              }
-            }
-          } else { setPageData(null) }
-          setLoading(false)
-        }
-      } catch (err) { if (isMounted) { setPageData(null); setLoading(false) } }
+      setPage(data)
+      setActiveImage(data.product_image_url || '')
+      if (data.branches) setSelectedBranch(data.branches.split(',')[0].trim())
+      if (data.available_times) setSelectedTime(data.available_times.split(',')[0].trim())
+
+      // زيادة عدد الزيارات
+      await supabase
+        .from('landing_pages')
+        .update({ views_count: (data.views_count || 0) + 1 })
+        .eq('id', data.id)
+
+      setLoading(false)
     }
-    fetchPage()
-    return () => { isMounted = false }
-  }, [rawSlug])
+    loadPage()
+  }, [params])
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white font-bold">جاري تحميل الصفحة...</div>
-  if (!pageData) return <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50"><h1 className="text-xl font-bold text-slate-800">الصفحة غير متوفرة أو معلقة</h1><p className="text-slate-500 text-xs mt-1">تأكد من صحة الرابط وسريان الاشتراك.</p></div>
+  // حساب مصاريف الشحن
+  const getShippingCost = () => {
+    if (!page || page.shipping_type === 'free') return 0
+    if (page.shipping_type === 'flat') return Number(page.shipping_flat_rate) || 0
 
-  const isProduct = pageData.template_type === 'product'
-  const rawPrice = pageData.product_price ? parseFloat(pageData.product_price) : null
-  const hasPrice = rawPrice !== null && !isNaN(rawPrice) && rawPrice > 0
-  const originalPrice = hasPrice ? Math.round(rawPrice * 1.55) : null
-  const allImages = [pageData.product_image_url, ...(pageData.gallery_images || [])].filter(Boolean)
+    const currentGov = GOVERNORATES.find(g => g.name === selectedGov)
+    const zone = currentGov ? currentGov.zone : 'cairo'
 
-  const parsedBranches = (pageData.branches || '').split(',').map(b => b.trim()).filter(Boolean)
-  const parsedTimes = (pageData.available_times || '12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م').split(',').map(t => t.trim()).filter(Boolean)
-
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    try { supabase.rpc('increment_click', { p_slug: decodeURIComponent(rawSlug).toLowerCase().trim() }).then(() => {}) } catch (e) {}
-    
-    if (typeof window !== 'undefined') {
-      if (window.fbq && pageData.meta_pixel_id) window.fbq('track', isProduct ? 'Purchase' : 'Lead', { value: hasPrice ? rawPrice * quantity : 0, currency: 'EGP' })
-      if (window.ttq && pageData.tiktok_pixel_id) window.ttq.track(isProduct ? 'CompletePayment' : 'SubmitForm')
-      if (window.snaptr && pageData.snapchat_pixel_id) window.snaptr('track', isProduct ? 'PURCHASE' : 'SIGN_UP')
-    }
-
-    let msg = ''
-    if (isProduct) {
-      msg = `🔥 *طلب شراء جديد:*\n` +
-        `🏪 المتجر: ${pageData.business_name}\n` +
-        `📦 المنتج: ${pageData.headline}\n` +
-        (hasPrice ? `💰 السعر: ${rawPrice * quantity} ج.م (الكمية: ${quantity})\n` : '') +
-        `👤 الاسم: ${name}\n` +
-        `📞 الهاتف: ${phone}\n` +
-        `📍 العنوان: ${address}\n` +
-        (notes ? `📝 ملاحظات: ${notes}` : '')
-    } else {
-      msg = `🎯 *طلب حجز موعد مؤكد:*\n` +
-        `📋 الجهة/النشاط: ${pageData.business_name}\n` +
-        `🩺 الخدمة/التخصص: ${pageData.headline}\n` +
-        (hasPrice ? `💰 القيمة: ${rawPrice} ج.م\n` : '') +
-        `👤 اسم العميل/المريض: ${name}\n` +
-        `📞 رقم الهاتف: ${phone}\n` +
-        (parsedBranches.length > 0 ? `🏢 الفرع / القاعة: ${selectedBranch}\n` : '') +
-        `📅 التاريخ المطلوب: ${selectedDate || 'أقرب موعد متاح'}\n` +
-        `⏰ التوقيت المفضل: ${selectedTime}\n` +
-        (notes ? `📝 تفاصيل إضافية: ${notes}` : '')
-    }
-
-    window.location.href = `https://wa.me/${(pageData.whatsapp_number || '').replace(/\D/g, '')}?text=${encodeURIComponent(msg)}`
+    if (zone === 'cairo') return Number(page.shipping_cairo) || 40
+    if (zone === 'delta') return Number(page.shipping_delta) || 55
+    if (zone === 'upper') return Number(page.shipping_upper) || 70
+    if (zone === 'remote') return Number(page.shipping_remote) || 90
+    return 50
   }
 
-  return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
-      {pageData.meta_pixel_id && <Script id="fb" strategy="afterInteractive">{`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script','https://connect.facebook.net/en_US/fbevents.js');fbq('init', '${pageData.meta_pixel_id}');fbq('track', 'PageView');`}</Script>}
-      {pageData.tiktok_pixel_id && <Script id="tt" strategy="afterInteractive">{`!function (w, d, t) {w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};var o=document.createElement("script");o.type="text/javascript",o.async=!0,o.src=i+"?sdkid="+e+"&lib="+t;var a=document.getElementsByTagName("script")[0];a.parentNode.insertBefore(o,a)};ttq.load('${pageData.tiktok_pixel_id}');ttq.page();}(window, document, 'ttq');`}</Script>}
-      {pageData.snapchat_pixel_id && <Script id="snap" strategy="afterInteractive">{`(function(e,t,n){if(e.snaptr)return;var a=e.snaptr=function(){a.handleRequest?a.handleRequest.apply(a,arguments):a.queue.push(arguments)};a.queue=[];var s='script';var r=t.createElement(s);r.async=!0;r.src=n;var u=t.getElementsByTagName(s)[0];u.parentNode.insertBefore(r,u);})(window,document,'https://sc-static.net/scevent.min.js');snaptr('init', '${pageData.snapchat_pixel_id}');snaptr('track', 'PAGE_VIEW');`}</Script>}
+  // تطبيق الكوبون
+  const handleApplyCoupon = () => {
+    setCouponError('')
+    if (!couponInput.trim()) return
 
-      <div className="bg-gradient-to-r from-emerald-700 to-teal-800 text-white text-xs font-bold py-2.5 px-4 text-center sticky top-0 z-40 shadow flex justify-center items-center gap-2">
-        <span>{isProduct ? '⚡ عرض خاص - ينتهي خلال:' : '⚡ سارع بحجز موعدك - الأوقات المتاحة محدودة اليوم:'}</span>
-        <span className="bg-black/30 px-2 py-0.5 rounded dir-ltr font-mono">{String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}</span>
+    if (page?.coupon_code && couponInput.trim().toUpperCase() === page.coupon_code.toUpperCase()) {
+      const basePrice = Number(page.product_price) || 0
+      let discountAmount = 0
+
+      if (page.discount_type === 'percentage') {
+        const percent = Number(page.discount_value) || 0
+        discountAmount = (basePrice * percent) / 100
+      } else {
+        discountAmount = Number(page.discount_value) || 0
+      }
+
+      setAppliedCoupon({
+        code: page.coupon_code.toUpperCase(),
+        amount: discountAmount,
+      })
+    } else {
+      setAppliedCoupon(null)
+      setCouponError('كود الخصم غير صالح أو منتهي')
+    }
+  }
+
+  // حساب الإجمالي النهائي
+  const basePrice = Number(page?.product_price) || 0
+  const discountAmount = appliedCoupon ? appliedCoupon.amount : 0
+  const productPriceAfterDiscount = Math.max(0, basePrice - discountAmount)
+  const shippingCost = getShippingCost()
+  const grandTotal = productPriceAfterDiscount + shippingCost
+
+  // إرسال الطلب إلى واتساب
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+
+    // تحديث عدد الطلبات في قاعدة البيانات
+    if (page) {
+      await supabase
+        .from('landing_pages')
+        .update({ clicks_count: (page.clicks_count || 0) + 1 })
+        .eq('id', page.id)
+    }
+
+    // تشغيل بكسل الشراء / التحويل
+    if (typeof window !== 'undefined' && window.fbq && page?.meta_pixel_id) {
+      window.fbq('track', 'Purchase', { value: grandTotal, currency: 'EGP' })
+    }
+
+    let message = ''
+    if (page.template_type === 'product') {
+      message = `🛍️ *طلب شراء جديد من الرابط*\n` +
+        `----------------------------------\n` +
+        `📦 *المنتج:* ${page.headline}\n` +
+        (page.original_price ? `💵 *السعر الأصلي:* ~${page.original_price} ج.م~\n` : '') +
+        `🏷️ *سعر العرض:* ${page.product_price} ج.م\n` +
+        (appliedCoupon ? `🎟️ *الكوبون المطبق:* ${appliedCoupon.code} (خصم ${appliedCoupon.amount} ج.م)\n` : '') +
+        (page.shipping_type !== 'free' ? `📍 *المحافظة:* ${selectedGov}\n🚚 *الشحن:* ${shippingCost} ج.م\n` : `🚚 *الشحن:* مجاني 🎁\n`) +
+        `----------------------------------\n` +
+        `💰 *الإجمالي النهائي المطلوب:* *${grandTotal} ج.م*\n` +
+        `----------------------------------\n` +
+        `👤 *الاسم:* ${customerName}\n` +
+        `📱 *الهاتف:* ${customerPhone}\n` +
+        `🏠 *العنوان التفصيلي:* ${customerAddress}\n` +
+        `----------------------------------\n` +
+        `⚡ تمت المعاملة عبر: Aipudio-LP`
+    } else {
+      message = `🎯 *حجز موعد جديد من الرابط*\n` +
+        `----------------------------------\n` +
+        `🏢 *الخدمة:* ${page.headline}\n` +
+        `🏛️ *الفرع:* ${selectedBranch}\n` +
+        `⏰ *الموعد المفضل:* ${selectedTime}\n` +
+        `----------------------------------\n` +
+        `👤 *الاسم:* ${customerName}\n` +
+        `📱 *الهاتف:* ${customerPhone}\n` +
+        `💬 *ملاحظات:* ${customerAddress || 'لا توجد'}\n` +
+        `----------------------------------\n` +
+        `⚡ تمت المعاملة عبر: Aipudio-LP`
+    }
+
+    window.open(`https://wa.me/${page.whatsapp_number}?text=${encodeURIComponent(message)}`, '_blank')
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 bg-white p-6 rounded-2xl shadow-sm font-bold text-slate-700 text-sm">
+          <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+          <span>جاري تحميل العرض...</span>
+        </div>
       </div>
+    )
+  }
 
-      <div className="max-w-xl mx-auto bg-white shadow-xl min-h-screen">
-        {selectedImage && (
-          <div className="space-y-2 p-3 bg-slate-50">
-            <div className="relative w-full aspect-square bg-slate-200 rounded-2xl overflow-hidden">
-              <img src={selectedImage} alt={pageData.headline} className="w-full h-full object-cover" />
-              <span className="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow">{isProduct ? 'خصم اليوم 🔥' : 'متاح للحجز الآن ✅'}</span>
+  if (notFound || !page) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-200 max-w-sm w-full space-y-3">
+          <span className="text-4xl block">🔍</span>
+          <h1 className="text-lg font-black text-slate-800">هذا الرابط غير متاح</h1>
+          <p className="text-xs text-slate-500 leading-relaxed">تأكد من صحة الرابط أو تواصل مع صاحب النشاط.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const gallery = Array.isArray(page.gallery_images) ? page.gallery_images : []
+
+  return (
+    <div className="min-h-screen bg-slate-100/70 text-slate-900 py-6 sm:py-10 px-3 sm:px-4 font-sans selection:bg-purple-500 selection:text-white">
+      {/* تضمين بكسلات التتبع */}
+      {page.meta_pixel_id && (
+        <Script id="meta-pixel" strategy="afterInteractive">
+          {`
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '${page.meta_pixel_id}');
+            fbq('track', 'PageView');
+          `}
+        </Script>
+      )}
+
+      <div className="max-w-md mx-auto bg-white rounded-3xl shadow-xl border border-slate-200/80 overflow-hidden">
+        
+        {/* شريط النشاط العلوي */}
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
+              {page.business_name?.[0] || 'A'}
             </div>
-            {allImages.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto py-1">
-                {allImages.map((img, idx) => (
-                  <button key={idx} type="button" onClick={() => setSelectedImage(img)} className={`w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border-2 ${selectedImage === img ? 'border-emerald-600' : 'border-transparent opacity-70'}`}>
-                    <img src={img} alt="preview" className="w-full h-full object-cover" />
+            <span className="font-extrabold text-xs text-slate-800">{page.business_name}</span>
+          </div>
+          <span className="text-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            متاح للطلب الآن
+          </span>
+        </div>
+
+        {/* عرض الصور والمعرض */}
+        {activeImage && (
+          <div className="p-4 pb-0 space-y-2">
+            <div className="aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-inner">
+              <img src={activeImage} alt={page.headline} className="w-full h-full object-cover transition duration-300" />
+            </div>
+
+            {gallery.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveImage(page.product_image_url)}
+                  className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition ${
+                    activeImage === page.product_image_url ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-transparent opacity-60'
+                  }`}
+                >
+                  <img src={page.product_image_url} alt="رئيسية" className="w-full h-full object-cover" />
+                </button>
+                {gallery.map((imgUrl, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => setActiveImage(imgUrl)}
+                    className={`w-14 h-14 rounded-xl overflow-hidden border-2 shrink-0 transition ${
+                      activeImage === imgUrl ? 'border-purple-600 ring-2 ring-purple-600/20' : 'border-transparent opacity-60'
+                    }`}
+                  >
+                    <img src={imgUrl} alt={`إضافية ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -158,126 +279,203 @@ export default function DynamicLandingPage() {
           </div>
         )}
 
-        <div className="p-5 space-y-5">
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full">{pageData.business_name}</span>
-              <span className="text-amber-500 text-xs">⭐⭐⭐⭐⭐ (4.9/5)</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 leading-snug">{pageData.headline}</h1>
-            {hasPrice && (
-              <div className="mt-3 flex items-center gap-3 bg-slate-50 p-3 rounded-xl border">
-                <span className="text-2xl font-black text-emerald-600">{rawPrice} ج.م</span>
-                {isProduct && originalPrice && <span className="text-slate-400 line-through text-xs">{originalPrice} ج.م</span>}
-                {isProduct && originalPrice && <span className="text-xs bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">وفرت {originalPrice - rawPrice} ج.م</span>}
-              </div>
+        {/* تفاصيل العرض والنصوص */}
+        <div className="p-5 space-y-4">
+          <div className="space-y-2">
+            <h1 className="text-xl font-black text-slate-900 leading-snug">{page.headline}</h1>
+            {page.description && (
+              <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                {page.description}
+              </p>
             )}
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
-            <div className="p-2.5 bg-slate-50 rounded-xl border"><span>{isProduct ? '🚚' : '📅'}</span><p className="mt-1">{isProduct ? 'شحن سريع' : 'تأكيد فوري'}</p></div>
-            <div className="p-2.5 bg-slate-50 rounded-xl border"><span>{isProduct ? '💵' : '🔒'}</span><p className="mt-1">{isProduct ? 'دفع بالاستلام' : 'سرية وخصوصية'}</p></div>
-            <div className="p-2.5 bg-slate-50 rounded-xl border"><span>{isProduct ? '🔄' : '⭐'}</span><p className="mt-1">{isProduct ? 'ضمان معاينة' : 'رعاية متخصصة'}</p></div>
-          </div>
+          {/* كارت السعر والشحن للمنتجات */}
+          {page.template_type === 'product' && (
+            <div className="bg-purple-50/60 p-4 rounded-2xl border border-purple-100 space-y-3">
+              <div className="flex items-baseline justify-between">
+                <div>
+                  <span className="text-xs text-slate-500 block">السعر الحالي:</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-purple-700">{page.product_price} ج.م</span>
+                    {page.original_price && (
+                      <span className="text-xs text-slate-400 line-through font-semibold">{page.original_price} ج.م</span>
+                    )}
+                  </div>
+                </div>
 
-          {pageData.description && (
-            <div className="bg-slate-50 p-4 rounded-xl border text-xs leading-relaxed text-slate-600 whitespace-pre-line">
-              <strong className="block text-slate-800 mb-1">{isProduct ? 'تفاصيل المنتج:' : 'تفاصيل ومواعيد الخدمة / الحجز:'}</strong>
-              {pageData.description}
+                <span className="text-[11px] bg-white border border-purple-200 text-purple-800 px-2.5 py-1 rounded-xl font-bold shadow-xs">
+                  {page.shipping_type === 'free' ? '🚚 شحن مجاني' : '⚡ توصيل سريع'}
+                </span>
+              </div>
+
+              {/* تطبيق الكوبون */}
+              {page.coupon_code && (
+                <div className="pt-2 border-t border-purple-100 space-y-1.5">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="هل لديك كود خصم؟"
+                      value={couponInput}
+                      onChange={e => setCouponInput(e.target.value)}
+                      className="flex-1 p-2 bg-white border border-purple-200 rounded-xl text-xs font-mono uppercase outline-none focus:border-purple-600"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleApplyCoupon}
+                      className="px-3.5 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition"
+                    >
+                      تطبيق
+                    </button>
+                  </div>
+                  {appliedCoupon && (
+                    <p className="text-[11px] text-emerald-600 font-bold">
+                      ✅ تم تطبيق كود ({appliedCoupon.code}) وخصم {appliedCoupon.amount} ج.م
+                    </p>
+                  )}
+                  {couponError && <p className="text-[11px] text-rose-600 font-bold">{couponError}</p>}
+                </div>
+              )}
             </div>
           )}
 
-          {/* نموذج الطلب والحجز */}
-          <div id="order-form" className="bg-emerald-50/60 p-4 rounded-2xl border-2 border-emerald-500/20">
-            <h2 className="text-base font-extrabold text-slate-900 text-center mb-1">{isProduct ? '📦 اطلب الآن وادفع عند الاستلام' : '🎯 حدد موعدك وسجّل بياناتك للتأكيد'}</h2>
-            <p className="text-[11px] text-slate-500 text-center mb-3">سيتم تأكيد الحجز والتواصل معك مباشرة</p>
+          {/* نموذج إدخال البيانات */}
+          <form onSubmit={handleSubmit} className="space-y-3 pt-2">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">الاسم بالكامل</label>
+              <input
+                type="text"
+                required
+                placeholder="أدخل اسمك الكريم"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 focus:bg-white transition"
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">الاسم بالكامل *</label>
-                <input type="text" required placeholder="أدخل اسمك" value={name} onChange={e => setName(e.target.value)} className="w-full p-2.5 bg-white border rounded-xl outline-none" />
-              </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700 block">رقم الهاتف (واتساب)</label>
+              <input
+                type="tel"
+                required
+                placeholder="010xxxxxxxx"
+                value={customerPhone}
+                onChange={e => setCustomerPhone(e.target.value)}
+                className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs dir-ltr outline-none focus:border-purple-600 focus:bg-white font-mono transition"
+              />
+            </div>
 
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">رقم الهاتف (واتساب للتأكيد) *</label>
-                <input type="tel" required placeholder="01xxxxxxxxx" value={phone} onChange={e => setPhone(e.target.value)} className="w-full p-2.5 bg-white border rounded-xl outline-none dir-ltr text-right" />
-              </div>
-
-              {isProduct ? (
-                <div>
-                  <label className="block font-bold text-slate-700 mb-1">العنوان بالتفصيل *</label>
-                  <input type="text" required placeholder="المحافظة - المدينة - اسم الشارع" value={address} onChange={e => setAddress(e.target.value)} className="w-full p-2.5 bg-white border rounded-xl outline-none" />
-                </div>
-              ) : (
-                <>
-                  {parsedBranches.length > 1 && (
-                    <div>
-                      <label className="block font-bold text-slate-700 mb-1">اختر الفرع / المكان *</label>
-                      <select value={selectedBranch} onChange={e => setSelectedBranch(e.target.value)} className="w-full p-2.5 bg-white border rounded-xl outline-none">
-                        {parsedBranches.map((b, i) => <option key={i} value={b}>{b}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* تقويم اختيار اليوم */}
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1">📅 اختر يوم الحجز المفضل *</label>
-                    <input
-                      type="date"
-                      required
-                      min={todayStr}
-                      value={selectedDate}
-                      onChange={e => setSelectedDate(e.target.value)}
-                      className="w-full p-2.5 bg-white border rounded-xl outline-none font-sans"
-                    />
-                  </div>
-
-                  {/* أزرار اختيار توقيت الحجز */}
-                  <div>
-                    <label className="block font-bold text-slate-700 mb-1.5">⏰ اختر التوقيت المناسب لك *</label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {parsedTimes.map((timeSlot, idx) => (
-                        <button
-                          key={idx}
-                          type="button"
-                          onClick={() => setSelectedTime(timeSlot)}
-                          className={`py-2 px-1 rounded-xl text-[11px] font-bold border transition ${
-                            selectedTime === timeSlot
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm'
-                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
-                          }`}
-                        >
-                          {timeSlot}
-                        </button>
+            {/* حقول خاصة بقالب المنتجات والشحن */}
+            {page.template_type === 'product' && (
+              <>
+                {page.shipping_type === 'zones' && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">اختر محافظتك (لتحديد تكلفة الشحن)</label>
+                    <select
+                      value={selectedGov}
+                      onChange={e => setSelectedGov(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 focus:bg-white font-bold transition"
+                    >
+                      {GOVERNORATES.map((gov, i) => (
+                        <option key={i} value={gov.name}>{gov.name}</option>
                       ))}
-                    </div>
+                    </select>
                   </div>
-                </>
-              )}
+                )}
 
-              {isProduct && hasPrice && (
-                <div className="flex items-center gap-3 pt-1">
-                  <span className="font-bold">الكمية:</span>
-                  <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-8 h-8 bg-white border rounded-lg font-bold">-</button>
-                  <span className="font-bold">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity(quantity + 1)} className="w-8 h-8 bg-white border rounded-lg font-bold">+</button>
-                  <span className="mr-auto font-bold text-emerald-600">الإجمالي: {rawPrice * quantity} ج.م</span>
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">العنوان بالتفصيل</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="الشارع، رقم المبنى، علامة مميزة"
+                    value={customerAddress}
+                    onChange={e => setCustomerAddress(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 focus:bg-white transition"
+                  />
                 </div>
-              )}
 
-              <button type="submit" className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow-lg mt-3 text-sm transition">
-                💬 {isProduct ? 'تأكيد الشراء عبر واتساب' : 'تأكيد الحجز والموعد عبر واتساب'}
-              </button>
-            </form>
+                {/* ملخص الفاتورة النهائية */}
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-700">
+                  <div className="flex justify-between">
+                    <span>سعر المنتج:</span>
+                    <strong>{productPriceAfterDiscount} ج.م {appliedCoupon && <span className="text-emerald-600 text-[10px]">(بعد الخصم)</span>}</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>مصاريف الشحن والتوصيل:</span>
+                    <strong>{shippingCost === 0 ? <span className="text-emerald-600">مجاني 🎁</span> : `${shippingCost} ج.م`}</strong>
+                  </div>
+                  <div className="border-t border-slate-200 pt-1.5 flex justify-between text-sm font-black text-slate-900">
+                    <span>الإجمالي النهائي المطلوب:</span>
+                    <span className="text-purple-700 text-base">{grandTotal} ج.م</span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* حقول خاصة بقالب الحجوزات والعيادات */}
+            {page.template_type === 'booking' && (
+              <>
+                {page.branches && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">اختر الفرع أو القاعة</label>
+                    <select
+                      value={selectedBranch}
+                      onChange={e => setSelectedBranch(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 bg-white font-bold"
+                    >
+                      {page.branches.split(',').map((branch, i) => (
+                        <option key={i} value={branch.trim()}>{branch.trim()}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {page.available_times && (
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 block">اختر الوقت المناسب</label>
+                    <select
+                      value={selectedTime}
+                      onChange={e => setSelectedTime(e.target.value)}
+                      className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 bg-white font-bold"
+                    >
+                      {page.available_times.split(',').map((time, i) => (
+                        <option key={i} value={time.trim()}>{time.trim()}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-slate-700 block">ملاحظات أو استفسار إضافي (اختياري)</label>
+                  <input
+                    type="text"
+                                        placeholder="أي ملاحظات تود إضافتها"
+                    value={customerAddress}
+                    onChange={e => setCustomerAddress(e.target.value)}
+                    className="w-full p-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs outline-none focus:border-purple-600 focus:bg-white"
+                  />
+                </div>
+              </>
+            )}
+
+            {/* زر تأكيد الطلب عبر واتساب */}
+            <button
+              type="submit"
+              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-extrabold rounded-2xl shadow-xl shadow-emerald-600/20 transition flex items-center justify-center gap-2 text-sm transform active:scale-95 pt-3"
+            >
+              <span>{page.template_type === 'product' ? '🛍️ تأكيد الطلب الفوري عبر واتساب' : '📅 تأكيد الحجز المباشر عبر واتساب'}</span>
+            </button>
+          </form>
+
+          {/* شارة الضمان والسرعة */}
+          <div className="pt-2 text-center text-[10px] text-slate-400 font-semibold space-y-1 border-t border-slate-100">
+            <p>🔒 بياناتك محمية ويتم التواصل معك فوراً عبر واتساب لتأكيد الاستلام</p>
+            <p className="text-purple-600 font-bold">مدعوم بواسطة أسرع نظام لروابط البيع المباشر Aipudio-LP ⚡</p>
           </div>
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t z-50 flex items-center justify-between gap-3 max-w-xl mx-auto">
-        {hasPrice ? <span className="text-base font-black text-emerald-600">{rawPrice} ج.م</span> : <span className="text-xs font-bold text-slate-600">حجز مباشر ومؤكد ⚡</span>}
-        <button onClick={() => document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 py-2.5 bg-emerald-600 text-white font-extrabold rounded-xl text-xs text-center">{isProduct ? 'اطلب الآن ⚡' : 'احجز موعدك الآن ⚡'}</button>
       </div>
     </div>
   )
-                }
-                
+}
