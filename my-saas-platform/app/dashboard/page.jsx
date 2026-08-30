@@ -37,8 +37,8 @@ export default function Dashboard() {
     instapay_id: 'your-instapay-id@instapay',
     vodafone_cash: '01501665571',
     support_whatsapp: '201005825888',
-    monthly_price: '199 ج.م',
-    yearly_price: '1499 ج.م',
+    monthly_price: '99 ج.م',
+    yearly_price: '799 ج.م',
   }
 
   useEffect(() => {
