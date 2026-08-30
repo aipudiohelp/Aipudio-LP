@@ -9,7 +9,8 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [uploadingImg, setUploadingImg] = useState(false)
+  const [uploadingMain, setUploadingMain] = useState(false)
+  const [uploadingGallery, setUploadingGallery] = useState(false)
   const [origin, setOrigin] = useState('')
   const router = useRouter()
 
@@ -22,7 +23,12 @@ export default function Dashboard() {
     whatsapp_number: '',
     product_price: '',
     product_image_url: '',
+    gallery_images: [],
     meta_pixel_id: '',
+    tiktok_pixel_id: '',
+    snapchat_pixel_id: '',
+    views_count: 0,
+    clicks_count: 0,
   })
 
   useEffect(() => {
@@ -52,48 +58,70 @@ export default function Dashboard() {
         .maybeSingle()
 
       if (page) {
-        setFormData(page)
+        setFormData({
+          ...page,
+          gallery_images: Array.isArray(page.gallery_images) ? page.gallery_images : [],
+          views_count: page.views_count || 0,
+          clicks_count: page.clicks_count || 0
+        })
       }
       setLoading(false)
     }
     loadData()
   }, [router])
 
-  // دالة الرفع المباشر للصور إلى Supabase Storage
-  const handleFileUpload = async (e) => {
+  // رفع الصورة الرئيسية
+  const handleMainUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadingMain(true)
     try {
-      const file = e.target.files?.[0]
-      if (!file) return
-
-      if (file.size > 5 * 1024 * 1024) {
-        alert('أقصى حجم مسموح به للصورة هو 5 ميجابايت')
-        return
-      }
-
-      setUploadingImg(true)
       const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
-
-      const { error: uploadError } = await supabase.storage
-        .from('landing-images')
-        .upload(filePath, file)
-
-      if (uploadError) {
-        throw uploadError
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('landing-images')
-        .getPublicUrl(filePath)
-
-      setFormData((prev) => ({ ...prev, product_image_url: publicUrl }))
-      alert('تم رفع الصورة بنجاح!')
+      const fileName = `${user.id}-main-${Date.now()}.${fileExt}`
+      const { error } = await supabase.storage.from('landing-images').upload(fileName, file)
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('landing-images').getPublicUrl(fileName)
+      setFormData(prev => ({ ...prev, product_image_url: publicUrl }))
     } catch (err) {
-      alert('خطأ أثناء رفع الصورة: ' + err.message)
+      alert('خطأ أثناء الرفع: ' + err.message)
     } finally {
-      setUploadingImg(false)
+      setUploadingMain(false)
     }
+  }
+
+  // رفع صورة لمعرض الصور المتعدد
+  const handleGalleryUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if ((formData.gallery_images || []).length >= 4) {
+      alert('الحد الأقصى لمعرض الصور هو 4 صور إضافية.')
+      return
+    }
+
+    setUploadingGallery(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${user.id}-gallery-${Date.now()}.${fileExt}`
+      const { error } = await supabase.storage.from('landing-images').upload(fileName, file)
+      if (error) throw error
+      const { data: { publicUrl } } = supabase.storage.from('landing-images').getPublicUrl(fileName)
+      setFormData(prev => ({
+        ...prev,
+        gallery_images: [...(prev.gallery_images || []), publicUrl]
+      }))
+    } catch (err) {
+      alert('خطأ أثناء الرفع: ' + err.message)
+    } finally {
+      setUploadingGallery(false)
+    }
+  }
+
+  const removeGalleryImage = (indexToRemove) => {
+    setFormData(prev => ({
+      ...prev,
+      gallery_images: prev.gallery_images.filter((_, idx) => idx !== indexToRemove)
+    }))
   }
 
   const handleSave = async (e) => {
@@ -113,7 +141,7 @@ export default function Dashboard() {
     if (error) {
       alert('خطأ أثناء الحفظ: ' + error.message)
     } else {
-      alert('تم حفظ وتحديث صفحة الهبوط بنجاح!')
+      alert('تم حفظ وتحديث صفحة الهبوط والإعدادات بنجاح!')
     }
     setSaving(false)
   }
@@ -123,11 +151,15 @@ export default function Dashboard() {
     router.push('/login')
   }
 
-  if (loading) return <div className="p-8 text-center text-slate-600">جاري تحميل لوحة التحكم...</div>
+  if (loading) return <div className="p-8 text-center text-slate-600 font-bold">جاري تحميل لوحة التحكم...</div>
+
+  const views = formData.views_count || 0
+  const clicks = formData.clicks_count || 0
+  const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      {/* شريط الرأس العلوي مع زر الرجوع للرئيسية */}
+      {/* الشريط العلوي */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -163,9 +195,36 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* قسم الإحصائيات ومعدل التحويل (Analytics) */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-400">إجمالي الزيارات (Views)</span>
+            <p className="text-2xl font-black text-slate-800 mt-1">{views}</p>
+          </div>
+          <span className="text-2xl p-3 bg-blue-50 text-blue-600 rounded-2xl">👁️</span>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-400">طلبات الواتساب (Clicks)</span>
+            <p className="text-2xl font-black text-emerald-600 mt-1">{clicks}</p>
+          </div>
+          <span className="text-2xl p-3 bg-emerald-50 text-emerald-600 rounded-2xl">💬</span>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-slate-400">معدل التحويل (Conversion)</span>
+            <p className="text-2xl font-black text-purple-600 mt-1">{conversionRate}%</p>
+          </div>
+          <span className="text-2xl p-3 bg-purple-50 text-purple-600 rounded-2xl">📈</span>
+        </div>
+      </div>
+
       {!profile?.is_active && (
         <div className="bg-amber-50 border-r-4 border-amber-500 p-4 rounded-xl mb-6 text-amber-900 text-sm font-medium">
-          ⚠️ <strong>تنبيه:</strong> حسابك في وضع المعاينة (غير مفعّل رسمياً). بعد حفظ الإعدادات، تواصل مع الإدارة لتفعيل نشر الصفحة للعامة.
+          ⚠️ <strong>تنبيه:</strong> حسابك في وضع المعاينة. بعد حفظ الإعدادات، تواصل مع الإدارة لتفعيل نشر الصفحة للعامة.
         </div>
       )}
 
@@ -242,7 +301,7 @@ export default function Dashboard() {
           <input
             type="text"
             required
-            placeholder="مثال: احجز الآن في أقوى معسكر تأسيس للثانوية العامة"
+            placeholder="مثال: احجز الآن في أقوى معسكر تأسيس"
             value={formData.headline}
             onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
             className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
@@ -259,15 +318,15 @@ export default function Dashboard() {
           ></textarea>
         </div>
 
-        {/* قسم بيانات ورفع صورة المنتج المباشر */}
-        <div className="p-5 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
+        {/* قسم رفع الصور ومعرض الصور المتعدد */}
+        <div className="p-5 bg-slate-50 rounded-2xl space-y-5 border border-slate-200">
           <h3 className="font-bold text-slate-800 text-sm">
-            {formData.template_type === 'product' ? 'بيانات المنتج والصورة:' : 'صورة الغلاف / اللوجو (اختياري):'}
+            {formData.template_type === 'product' ? 'صور المنتج والتفاصيل:' : 'صور الخدمة والغلاف:'}
           </h3>
 
           {formData.template_type === 'product' && (
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">سعر المنتج (بالجنيه/العملة)</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">سعر المنتج (بالجنيه)</label>
               <input
                 type="text"
                 placeholder="مثال: 350"
@@ -278,56 +337,107 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* الصورة الأساسية */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">رفع الصورة مباشرة من الجهاز</label>
-            <div className="flex flex-col sm:flex-row items-center gap-4">
+            <label className="block text-xs font-bold text-slate-700 mb-1">الصورة الرئيسية للمنتج</label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleMainUpload}
+              disabled={uploadingMain}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+            />
+            {uploadingMain && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع الصورة الرئيسية...</span>}
+            {formData.product_image_url && (
+              <div className="mt-2 flex items-center gap-3 bg-white p-2 rounded-xl border">
+                <img src={formData.product_image_url} alt="الرئيسية" className="w-12 h-12 object-cover rounded-lg border" />
+                <span className="text-xs text-emerald-600 font-bold flex-1">الصورة الرئيسية مفعلة ✅</span>
+              </div>
+            )}
+          </div>
+
+          {/* معرض الصور الإضافية (Gallery) */}
+          <div className="pt-3 border-t border-slate-200">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-xs font-bold text-slate-700">
+                معرض صور إضافي (حتى 4 صور للمعاينة أو آراء العملاء)
+              </label>
+              <span className="text-[11px] text-slate-400">({formData.gallery_images?.length || 0} / 4)</span>
+            </div>
+
+            {(formData.gallery_images?.length || 0) < 4 && (
               <input
                 type="file"
                 accept="image/*"
-                onChange={handleFileUpload}
-                disabled={uploadingImg}
-                className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
+                onChange={handleGalleryUpload}
+                disabled={uploadingGallery}
+                className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-800 cursor-pointer"
               />
-              {uploadingImg && <span className="text-xs text-emerald-600 font-bold animate-pulse">جاري رفع الصورة...</span>}
-            </div>
+            )}
+            {uploadingGallery && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع الصورة للمعرض...</span>}
 
-            {formData.product_image_url && (
-              <div className="mt-3 flex items-center gap-3 bg-white p-2.5 rounded-xl border">
-                <img
-                  src={formData.product_image_url}
-                  alt="معاينة"
-                  className="w-14 h-14 object-cover rounded-lg border"
-                />
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs text-emerald-600 font-bold block">تم رفع الصورة بنجاح ✅</span>
-                  <span className="text-[11px] text-slate-400 truncate block dir-ltr text-right">{formData.product_image_url}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, product_image_url: '' })}
-                  className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-1"
-                >
-                  حذف
-                </button>
+            {formData.gallery_images?.length > 0 && (
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {formData.gallery_images.map((url, idx) => (
+                  <div key={idx} className="relative group rounded-xl overflow-hidden border aspect-square bg-white">
+                    <img src={url} alt="معرض" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeGalleryImage(idx)}
+                      className="absolute inset-0 bg-red-600/80 text-white font-bold text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                    >
+                      حذف
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-1">Meta Pixel ID (اختياري)</label>
-          <input
-            type="text"
-            placeholder="مثال: 123456789012345"
-            value={formData.meta_pixel_id}
-            onChange={(e) => setFormData({ ...formData, meta_pixel_id: e.target.value })}
-            className="w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-left text-sm"
-          />
+        {/* قسم البكسلات والتتبع الإعلاني (Pixels) */}
+        <div className="p-5 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
+          <h3 className="font-bold text-slate-800 text-sm">🎯 التتبع الإعلاني والـ Pixels (اختياري)</h3>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Meta Pixel (Facebook & Insta)</label>
+              <input
+                type="text"
+                placeholder="1234567890"
+                value={formData.meta_pixel_id}
+                onChange={(e) => setFormData({ ...formData, meta_pixel_id: e.target.value })}
+                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">TikTok Pixel ID</label>
+              <input
+                type="text"
+                placeholder="C1234567890ABC"
+                value={formData.tiktok_pixel_id}
+                onChange={(e) => setFormData({ ...formData, tiktok_pixel_id: e.target.value })}
+                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Snapchat Pixel ID</label>
+              <input
+                type="text"
+                placeholder="xxxxxxxx-xxxx-xxxx"
+                value={formData.snapchat_pixel_id}
+                onChange={(e) => setFormData({ ...formData, snapchat_pixel_id: e.target.value })}
+                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+              />
+            </div>
+          </div>
         </div>
 
         <button
           type="submit"
-          disabled={saving || uploadingImg}
+          disabled={saving || uploadingMain || uploadingGallery}
           className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition shadow-lg shadow-emerald-600/20 text-base"
         >
           {saving ? 'جاري حفظ التعديلات...' : 'حفظ ونشر الصفحة 🚀'}
@@ -335,5 +445,4 @@ export default function Dashboard() {
       </form>
     </div>
   )
-      }
-      
+}
