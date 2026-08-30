@@ -464,4 +464,88 @@ export default function Dashboard() {
               <label className="text-xs font-bold text-slate-700">
                 معرض صور إضافي (حتى 4 صور إضافية)
               </label>
-              <span className="text-[11px] text-slate-400">({formData.gallery_images?.l
+                          <span className="text-[11px] text-slate-400">({formData.gallery_images?.length || 0} / 4)</span>
+          </div>
+
+          {(formData.gallery_images?.length || 0) < 4 && (
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleGalleryUpload}
+              disabled={uploadingGallery}
+              className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-800 cursor-pointer"
+            />
+          )}
+          {uploadingGallery && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع صورة المعرض...</span>}
+
+          {formData.gallery_images?.length > 0 && (
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              {formData.gallery_images.map((url, idx) => (
+                <div key={idx} className="relative group rounded-xl overflow-hidden border aspect-square bg-white">
+                  <img src={url} alt="معرض" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryImage(idx)}
+                    className="absolute inset-0 bg-red-600/80 text-white font-bold text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                  >
+                    حذف
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* قسم البكسلات */}
+      <div className="p-5 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
+        <h3 className="font-bold text-slate-800 text-sm">🎯 التتبع الإعلاني والـ Pixels (اختياري)</h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Meta Pixel</label>
+            <input
+              type="text"
+              placeholder="1234567890"
+              value={formData.meta_pixel_id}
+              onChange={(e) => setFormData({ ...formData, meta_pixel_id: e.target.value })}
+              className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">TikTok Pixel ID</label>
+            <input
+              type="text"
+              placeholder="C1234567890ABC"
+              value={formData.tiktok_pixel_id}
+              onChange={(e) => setFormData({ ...formData, tiktok_pixel_id: e.target.value })}
+              className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Snapchat Pixel ID</label>
+            <input
+              type="text"
+              placeholder="xxxxxxxx-xxxx-xxxx"
+              value={formData.snapchat_pixel_id}
+              onChange={(e) => setFormData({ ...formData, snapchat_pixel_id: e.target.value })}
+              className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
+            />
+          </div>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={saving || uploadingMain || uploadingGallery}
+        className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition shadow-lg shadow-emerald-600/20 text-base"
+      >
+        {saving ? 'جاري حفظ التعديلات...' : 'حفظ ونشر الصفحة 🚀'}
+      </button>
+    </form>
+  </div>
+)
+}
+
