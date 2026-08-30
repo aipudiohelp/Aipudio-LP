@@ -35,10 +35,10 @@ export default function Dashboard() {
   // بيانات حسابات الدفع المحدثة
   const PAYMENT_INFO = {
     account_holder: 'مصطفى بدر',
-    instapay_id: 'mustafa.nbe015@instapay', // معرف إنستاباي
-    instapay_phone: '01501665571',        // رقم الهاتف لإنستاباي
-    vodafone_cash: '01501665571',         // رقم فودافون كاش / المحافظ
-    support_whatsapp: '201005825888',     // رقم واتساب الإدارة لاستقبال الإيصالات (بدون +)
+    instapay_id: ' mustafa.nbe015@instapay',
+    instapay_phone: '01501665571',
+    vodafone_cash: '01501665571',
+    support_whatsapp: '201005825888',
     monthly_price: '99 ج.م / شهرياً',
     yearly_price: '799 ج.م / سنوياً',
   }
@@ -167,7 +167,6 @@ export default function Dashboard() {
   const daysLeft = endDate ? Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)) : 0
   const isSubscriptionActive = profile?.is_active && daysLeft > 0
 
-  // رسالة الواتساب المحدثة باسم Aipudio-LP
   const sendPaymentProof = () => {
     const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد المسجل: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل لتفعيل الاشتراك.`
     window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
@@ -241,7 +240,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* نافذة تفاصيل الدفع المحدثة */}
+      {/* نافذة تفاصيل الدفع */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
@@ -253,14 +252,12 @@ export default function Dashboard() {
               >✕</button>
             </div>
 
-            {/* اسم صاحب الحساب المستفيد */}
             <div className="bg-slate-100 p-3 rounded-xl flex items-center justify-between text-xs">
               <span className="text-slate-500 font-semibold">اسم صاحب الحساب المستفيد:</span>
               <span className="font-bold text-slate-800 text-sm">{PAYMENT_INFO.account_holder}</span>
             </div>
 
             <div className="space-y-3 text-sm">
-              {/* إنستاباي */}
               <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-100 space-y-1.5">
                 <span className="font-bold text-purple-900 text-xs block">⚡ التحويل عبر InstaPay (معرف / رقم):</span>
                 <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border text-xs font-mono font-bold text-slate-800">
@@ -273,7 +270,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* فودافون كاش */}
               <div className="bg-red-50 p-3.5 rounded-2xl border border-red-100">
                 <span className="font-bold text-red-900 text-xs block mb-1.5">📱 التحويل عبر فودافون كاش / المحافظ:</span>
                 <code className="text-sm bg-white py-1.5 rounded-lg border font-mono font-black text-slate-800 block text-center">
@@ -282,7 +278,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* الباقات ونسبة الخصم 35% */}
             <div className="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-700 space-y-1.5 border border-slate-100">
               <div className="flex justify-between">
                 <span>• الاشتراك الشهري:</span>
@@ -350,7 +345,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* نموذج التعديل */}
+      {/* نموذج الإعدادات */}
       <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
         <h2 className="text-lg font-bold text-slate-800 border-b pb-3">إعدادات صفحة الهبوط</h2>
 
@@ -464,4 +459,9 @@ export default function Dashboard() {
             )}
           </div>
 
-          <d
+          <div className="pt-3 border-t border-slate-200">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-xs font-bold text-slate-700">
+                معرض صور إضافي (حتى 4 صور إضافية)
+              </label>
+              <span className="text-[11px] text-slate-400">({formData.gallery_images?.l
