@@ -58,7 +58,11 @@ export default function Dashboard() {
     if (!session) return router.push('/login')
     setUser(session.user)
 
-    const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
+    const { data: prof } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', session.user.id)
+      .single()
     setProfile(prof)
 
     const { data: pages } = await supabase
@@ -112,13 +116,13 @@ export default function Dashboard() {
   }
 
   const deletePage = async (pageId, pageTitle) => {
-    if (!confirm(`هل أنت متأكد من رغبتك في حذف صفحة "${pageTitle}" نهائياً؟ سيتم تحرير المساحة لإنشاء صفحة أخرى.`)) return
+    if (!confirm(`هل أنت متأكد من رغبتك في حذف صفحة "${pageTitle}" نهائياً؟ سيتم تحرير المساحة لإنشاء صفحة جديدة.`)) return
     
     const { error } = await supabase.from('landing_pages').delete().eq('id', pageId)
     if (error) {
       alert('خطأ أثناء الحذف: ' + error.message)
     } else {
-      alert('تم حذف الصفحة وتحرير المساحة بنجاح!')
+      alert('تم حذف الصفحة بنجاح وتحرير المساحة!')
       if (editingPageId === pageId) resetToNew()
       await loadDashboard()
     }
@@ -134,8 +138,11 @@ export default function Dashboard() {
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('landing-images').getPublicUrl(fileName)
       setFormData(prev => ({ ...prev, product_image_url: publicUrl }))
-    } catch (err) { alert('خطأ: ' + err.message) }
-    finally { setUploadingMain(false) }
+    } catch (err) {
+      alert('خطأ: ' + err.message)
+    } finally {
+      setUploadingMain(false)
+    }
   }
 
   const handleGalleryUpload = async (e) => {
@@ -149,8 +156,11 @@ export default function Dashboard() {
       if (error) throw error
       const { data: { publicUrl } } = supabase.storage.from('landing-images').getPublicUrl(fileName)
       setFormData(prev => ({ ...prev, gallery_images: [...(prev.gallery_images || []), publicUrl] }))
-    } catch (err) { alert('خطأ: ' + err.message) }
-    finally { setUploadingGallery(false) }
+    } catch (err) {
+      alert('خطأ: ' + err.message)
+    } finally {
+      setUploadingGallery(false)
+    }
   }
 
   const handleSave = async (e) => {
@@ -159,7 +169,7 @@ export default function Dashboard() {
 
     const maxAllowed = profile?.max_pages || 1
     if (!editingPageId && userPages.length >= maxAllowed) {
-      alert(`عذراً، لقد استهلكت كامل المساحات النشطة لباقاتك (${maxAllowed} صفحات). يمكنك تعديل أو حذف إحدى صفحاتك الحالية، أو الترقية لزيادة السعة.`)
+      alert(`عذراً، لقد استهلكت كامل المساحات النشطة (${maxAllowed} صفحات). يمكنك تعديل أو حذف إحدى صفحاتك الحالية أو الترقية لزيادة السعة.`)
       setSaving(false)
       return
     }
@@ -180,14 +190,23 @@ export default function Dashboard() {
     if (res.error) {
       alert('خطأ أثناء الحفظ: ' + res.error.message)
     } else {
-      alert(editingPageId ? 'تم تحديث الصفحة بنجاح!' : 'تم إنشاء ونشر الصفحة الجديدة بنجاح!')
+      alert(editingPageId ? 'تم حفظ تعديلات الصفحة بنجاح!' : 'تم إنشاء ونشر الصفحة الجديدة بنجاح!')
       resetToNew()
       await loadDashboard()
     }
     setSaving(false)
   }
 
-  if (loading) return <div className="p-8 text-center font-bold text-slate-700">جاري تحميل لوحة التحكم...</div>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 bg-white p-6 rounded-2xl shadow-sm border border-slate-100 font-bold text-slate-700 text-sm">
+          <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
+          <span>جاري تحميل لوحة التحكم...</span>
+        </div>
+      </div>
+    )
+  }
 
   const now = new Date()
   const endDate = profile?.subscription_end ? new Date(profile.subscription_end) : null
@@ -199,311 +218,495 @@ export default function Dashboard() {
   const remainingPages = Math.max(0, maxPages - usedPages)
 
   return (
-    <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      {/* الشريط العلوي */}
-      <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border mb-6">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition">🏠</Link>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">لوحة تحكم النشاط</h1>
-            <p className="text-xs text-slate-500">{user?.email}</p>
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-500 selection:text-white py-6 px-4 sm:px-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        
+        {/* الشريط العلوي مع الشعار الرسمي */}
+        <div className="flex justify-between items-center bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 relative rounded-2xl overflow-hidden bg-slate-950 p-1.5 border border-purple-400/30 shadow-md shadow-purple-500/20 flex items-center justify-center">
+              <img src="/logo.png" alt="Aipudio" className="w-full h-full object-contain" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-black bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+                  Aipudio-LP
+                </h1>
+                <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-md font-bold">
+                  لوحة التحكم
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-medium">{user?.email}</p>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          {profile?.role === 'super_admin' && <Link href="/admin" className="px-3.5 py-2 bg-purple-50 text-purple-700 text-xs font-bold rounded-xl">👑 الإدارة</Link>}
-          <button onClick={async () => { await supabase.auth.signOut(); router.push('/login') }} className="px-4 py-2 text-xs bg-red-50 text-red-600 rounded-xl font-bold">خروج</button>
-        </div>
-      </div>
 
-      {/* شريط حالة الاشتراك والسعة */}
-      <div className={`p-5 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border ${isSubscriptionActive ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
-        <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-base">{isSubscriptionActive ? '✅ الاشتراك ساري' : '⛔ انتهت فترة الاشتراك'}</span>
-            <span className="text-xs bg-white px-2.5 py-0.5 rounded-full font-bold shadow-sm">
-              {profile?.plan_type === 'trial' ? 'تجريبي مجاني' : profile?.plan_type === 'yearly' ? 'باقة سنوية' : 'باقة شهرية'}
-            </span>
-          </div>
-          <p className="text-xs opacity-80">{isSubscriptionActive ? `متبقي ${daysLeft} يوماً (${endDate?.toLocaleDateString('ar-EG')})` : 'يرجى تجديد الاشتراك لإعادة التفعيل.'}</p>
-          
-          <div className="flex items-center gap-2 pt-1 text-xs font-bold">
-            <span className="bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg">
-              📄 الصفحات النشطة: {usedPages} من {maxPages} (متبقي {remainingPages} مساحة)
-            </span>
-          </div>
-        </div>
-
-        <button onClick={() => setShowPaymentModal(true)} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">💳 ترقية / تجديد الاشتراك</button>
-      </div>
-
-      {/* نافذة تفاصيل الدفع */}
-      {showPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-800">باقات الاشتراك والتفعيل الفوري</h3>
-              <button onClick={() => setShowPaymentModal(false)} className="font-bold text-xl text-slate-400">✕</button>
-            </div>
-
-            <div className="bg-slate-100 p-3 rounded-xl flex justify-between text-xs">
-              <span className="text-slate-500 font-semibold">المستفيد:</span>
-              <strong className="text-slate-800 text-sm">{PAYMENT_INFO.account_holder}</strong>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div className="bg-purple-50 p-3 rounded-2xl border border-purple-100 space-y-2">
-                <span className="font-bold text-purple-900 block">⚡ InstaPay:</span>
-                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
-                  <span className="font-mono font-bold text-slate-800">{PAYMENT_INFO.instapay_id}</span>
-                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'instapay_id')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'instapay_id' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
-                </div>
-                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
-                  <span className="font-mono font-bold text-slate-800">{PAYMENT_INFO.instapay_phone}</span>
-                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'instapay_phone')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'instapay_phone' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
-                </div>
-              </div>
-
-              <div className="bg-red-50 p-3 rounded-2xl border border-red-100">
-                <span className="font-bold text-red-900 block mb-1">📱 فودافون كاش:</span>
-                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
-                  <span className="font-mono font-black text-slate-800 text-sm">{PAYMENT_INFO.vodafone_cash}</span>
-                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vodafone_cash')} className="text-[11px] bg-red-100 text-red-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'vodafone_cash' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-3.5 rounded-xl border space-y-2 text-slate-700">
-                <div className="flex justify-between items-center">
-                  <span>• الباقة الشهرية (3 صفحات):</span>
-                  <strong className="text-slate-900">{PAYMENT_INFO.monthly_price}</strong>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span>• الباقة السنوية (10 صفحات):</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded text-[10px]">خصم 35% 🔥</span>
-                    <strong className="text-emerald-700">{PAYMENT_INFO.yearly_price}</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <button
-              onClick={() => {
-                const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل.`
-                window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
-              }}
-              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow transition"
+            <Link
+              href="/"
+              className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition text-xs font-bold"
+              title="الصفحة الرئيسية"
             >
-              💬 إرسال صورة التحويل عبر واتساب
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* قسم إدارة وقائمة الصفحات النشطة */}
-      <div className="bg-white p-5 rounded-2xl border shadow-sm mb-8">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-base font-bold text-slate-800">📂 صفحاتي المنشورة ({usedPages})</h2>
-          {usedPages < maxPages && (
-            <button
-              onClick={resetToNew}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-sm"
-            >
-              ➕ إضافة صفحة جديدة
-            </button>
-          )}
-        </div>
-
-        {userPages.length === 0 ? (
-          <div className="p-8 text-center bg-slate-50 rounded-xl border border-dashed text-slate-500 text-xs">
-            لا توجد لديك صفحات منشورة حتى الآن. استخدم النموذج أدناه لإنشاء صفحتك الأولى! 🚀
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {userPages.map((page, idx) => (
-              <div
-                key={page.id}
-                className={`p-4 rounded-xl border transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
-                  editingPageId === page.id ? 'border-emerald-500 bg-emerald-50/40 ring-1 ring-emerald-500' : 'bg-slate-50 border-slate-200'
-                }`}
+              🏠
+            </Link>
+            {profile?.role === 'super_admin' && (
+              <Link
+                href="/admin"
+                className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-95 transition"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-slate-900">{page.business_name || 'بدون اسم'}</span>
-                    <span className="text-[10px] bg-white px-2 py-0.5 rounded border text-slate-600 font-bold">
-                      {page.template_type === 'product' ? '📦 متجر' : '🎯 حجز موعد'}
-                    </span>
-                  </div>
+                👑 الإدارة
+              </Link>
+            )}
+            <button
+              onClick={async () => {
+                await supabase.auth.signOut()
+                router.push('/login')
+              }}
+              className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition border border-rose-100"
+            >
+              خروج
+            </button>
+          </div>
+        </div>
 
-                  <div className="flex items-center gap-2 text-xs">
-                    <a
-                      href={`/${page.slug}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-emerald-700 font-mono font-bold hover:underline dir-ltr"
-                    >
-                      /{page.slug}
-                    </a>
+        {/* بطاقة حالة الاشتراك والمساحات */}
+        <div
+          className={`p-5 sm:p-6 rounded-3xl border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition shadow-sm ${
+            isSubscriptionActive
+              ? 'bg-gradient-to-r from-purple-50/70 via-indigo-50/50 to-cyan-50/70 border-purple-200/80 text-slate-900'
+              : 'bg-rose-50 border-rose-200 text-rose-950'
+          }`}
+        >
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-sm sm:text-base">
+                {isSubscriptionActive ? '✨ الاشتراك ساري ونشط' : '⛔ انتهت فترة الاشتراك التجريبية'}
+              </span>
+              <span className="text-[10px] bg-white text-slate-800 border px-2.5 py-0.5 rounded-full font-bold shadow-xs">
+                {profile?.plan_type === 'trial'
+                  ? 'تجريبي مجاني (3 أيام)'
+                  : profile?.plan_type === 'yearly'
+                  ? 'باقة سنوية (10 صفحات)'
+                  : 'باقة شهرية (3 صفحات)'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-600">
+              {isSubscriptionActive
+                ? `متبقي في اشتراكك ${daysLeft} يوماً (ينتهي: ${endDate?.toLocaleDateString('ar-EG')})`
+                : 'يرجى تجديد الاشتراك لإعادة تفعيل صفحاتك واستقبال الطلبات.'}
+            </p>
+
+            <div className="pt-1 flex items-center gap-2">
+              <span className="bg-white/90 border border-purple-200/80 text-purple-900 font-bold text-xs px-3 py-1 rounded-xl shadow-xs">
+                📄 الصفحات النشطة: {usedPages} من {maxPages} (متبقي {remainingPages} مساحة)
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={() => setShowPaymentModal(true)}
+            className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-purple-500/20 transition transform active:scale-95"
+          >
+            💳 تفعيل / ترقية الاشتراك
+          </button>
+        </div>
+
+        {/* نافذة تفاصيل الدفع والتفعيل الفوري */}
+        {showPaymentModal && (
+          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in duration-150">
+              <div className="flex justify-between items-center border-b pb-3">
+                <div>
+                  <h3 className="font-extrabold text-base text-slate-900">باقات الاشتراك والتفعيل الفوري</h3>
+                  <p className="text-[11px] text-slate-500">تحويل سريع عبر InstaPay أو المحافظ الإلكترونية</p>
+                </div>
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-sm flex items-center justify-center transition"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/70 flex justify-between items-center text-xs">
+                <span className="text-slate-500 font-semibold">المستفيد:</span>
+                <strong className="text-slate-900 font-bold">{PAYMENT_INFO.account_holder}</strong>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200/80 space-y-2">
+                  <span className="font-bold text-purple-950 block">⚡ إنستاباي (InstaPay):</span>
+                  <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-purple-100">
+                    <span className="font-mono font-bold text-slate-800 text-[11px]">{PAYMENT_INFO.instapay_id}</span>
                     <button
                       type="button"
-                      onClick={() => copyPageLink(page.slug)}
-                      className="text-[10px] bg-slate-200 hover:bg-slate-300 text-slate-700 px-1.5 py-0.5 rounded font-bold transition"
+                      onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'instapay_id')}
+                      className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-lg hover:bg-purple-200 transition"
                     >
-                      {copiedSlug === page.slug ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
+                      {copiedKey === 'instapay_id' ? 'تم النسخ ✅' : 'نسخ 📋'}
                     </button>
                   </div>
-
-                  <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                    <span>👁️ الزيارات: <strong>{page.views_count || 0}</strong></span>
-                    <span>💬 الطلبات: <strong>{page.clicks_count || 0}</strong></span>
-                    <span>📈 التحويل: <strong>{page.views_count > 0 ? ((page.clicks_count / page.views_count) * 100).toFixed(1) : '0.0'}%</strong></span>
+                  <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-purple-100">
+                    <span className="font-mono font-bold text-slate-800 text-[11px]">{PAYMENT_INFO.instapay_phone}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'instapay_phone')}
+                      className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-lg hover:bg-purple-200 transition"
+                    >
+                      {copiedKey === 'instapay_phone' ? 'تم النسخ ✅' : 'نسخ 📋'}
+                    </button>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0">
-                  <button
-                    type="button"
-                    onClick={() => startEdit(page)}
-                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-lg transition"
-                  >
-                    ✏️ تعديل
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deletePage(page.id, page.business_name || page.slug)}
-                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 text-xs font-bold rounded-lg transition"
-                  >
-                    🗑️ حذف
-                  </button>
+                <div className="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-200/70">
+                  <span className="font-bold text-rose-950 block mb-1.5">📱 فودافون كاش / المحافظ:</span>
+                  <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-rose-100">
+                    <span className="font-mono font-black text-slate-900 text-xs">{PAYMENT_INFO.vodafone_cash}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vodafone_cash')}
+                      className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-1 rounded-lg hover:bg-rose-200 transition"
+                    >
+                      {copiedKey === 'vodafone_cash' ? 'تم النسخ ✅' : 'نسخ 📋'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200/70 space-y-2 text-slate-700">
+                  <div className="flex justify-between items-center">
+                    <span>• الباقة الشهرية (3 صفحات):</span>
+                    <strong className="text-slate-900">{PAYMENT_INFO.monthly_price}</strong>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span>• الباقة السنوية (10 صفحات):</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-rose-100 text-rose-700 font-bold px-1.5 py-0.5 rounded text-[10px]">خصم 35% 🔥</span>
+                      <strong className="text-purple-700">{PAYMENT_INFO.yearly_price}</strong>
+                    </div>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* نموذج إنشاء أو تعديل الصفحة */}
-      <div id="form-section" className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
-        <div className="flex justify-between items-center border-b pb-3">
-          <h2 className="text-base font-bold text-slate-800">
-            {editingPageId ? '✏️ تعديل بيانات الصفحة المحددة' : '✨ إنشاء ونشر صفحة جديدة'}
-          </h2>
-          {editingPageId && (
-            <button
-              type="button"
-              onClick={resetToNew}
-              className="text-xs text-slate-500 hover:text-slate-800 font-bold underline"
-            >
-              إلغاء التعديل / صفحة جديدة ✕
-            </button>
-          )}
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">نوع القالب</label>
-              <select value={formData.template_type} onChange={e => setFormData({ ...formData, template_type: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none">
-                <option value="booking">حجز موعد / تجميع بيانات (عيادات، معلمين، صالونات)</option>
-                <option value="product">بيع منتج مباشر (متاجر ودروب شيبينغ)</option>
-              </select>
-            </div>
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">اسم الرابط (Slug بالإنجليزية)</label>
-              <input type="text" required placeholder="مثال: dr-walaa أو offer-1" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} className="w-full p-2.5 border rounded-xl dir-ltr outline-none" />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">اسم النشاط / المركز / المتجر</label>
-              <input type="text" required value={formData.business_name} onChange={e => setFormData({ ...formData, business_name: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none" />
-            </div>
-            <div>
-                          <label className="font-bold text-slate-700 block mb-1">رقم الواتساب مع كود الدولة</label>
-            <input type="text" required placeholder="2010xxxxxxxx" value={formData.whatsapp_number} onChange={e => setFormData({ ...formData, whatsapp_number: e.target.value })} className="w-full p-2.5 border rounded-xl dir-ltr outline-none" />
-          </div>
-        </div>
-
-        {formData.template_type === 'booking' && (
-          <div className="p-4 bg-purple-50/60 rounded-xl space-y-3 border border-purple-100 text-xs">
-            <h3 className="font-bold text-purple-950">🗓️ إعدادات الفروع والأوقات المتاحة للحجز:</h3>
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">الفروع / القاعات (مفصولة بفاصلة):</label>
-              <input
-                type="text"
-                placeholder="مثال: فرع دمياط الجديدة, فرع المنصورة"
-                value={formData.branches}
-                onChange={e => setFormData({ ...formData, branches: e.target.value })}
-                className="w-full p-2.5 bg-white border rounded-xl outline-none"
-              />
-            </div>
-            <div>
-              <label className="font-bold text-slate-700 block mb-1">أوقات الحجز اليومية (مفصولة بفاصلة):</label>
-              <input
-                type="text"
-                placeholder="12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م"
-                value={formData.available_times}
-                onChange={e => setFormData({ ...formData, available_times: e.target.value })}
-                className="w-full p-2.5 bg-white border rounded-xl outline-none"
-              />
+              <button
+                onClick={() => {
+                  const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق إشعار التحويل.`
+                  window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-extrabold rounded-2xl text-xs shadow-md transition"
+              >
+                💬 إرسال إشعار التحويل عبر واتساب للتفعيل الفوري
+              </button>
             </div>
           </div>
         )}
 
-        <div className="text-xs">
-          <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي</label>
-          <input type="text" required value={formData.headline} onChange={e => setFormData({ ...formData, headline: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none" />
-        </div>
-
-        <div className="text-xs">
-          <label className="font-bold text-slate-700 block mb-1">الوصف والتفاصيل</label>
-          <textarea rows="2" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none"></textarea>
-        </div>
-
-        <div className="p-4 bg-slate-50 rounded-xl space-y-3 border text-xs">
-          {formData.template_type === 'product' && (
+        {/* قسم إدارة وقائمة الصفحات النشطة */}
+        <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
-              <label className="font-bold text-slate-700 block mb-1">سعر المنتج (اختياري)</label>
-              <input type="text" placeholder="350" value={formData.product_price} onChange={e => setFormData({ ...formData, product_price: e.target.value })} className="w-full p-2.5 border rounded-xl bg-white outline-none" />
+              <h2 className="text-base font-extrabold text-slate-900">📂 صفحاتي المنشورة ({usedPages})</h2>
+              <p className="text-[11px] text-slate-400">يمكنك تعديل أي صفحة أو حذفها لتحرير المساحة فوراً</p>
             </div>
-          )}
-          <div>
-            <label className="font-bold text-slate-700 block mb-1">الصورة الرئيسية</label>
-            <input type="file" accept="image/*" onChange={handleMainUpload} disabled={uploadingMain} className="w-full text-xs cursor-pointer" />
-            {uploadingMain && <span className="text-emerald-600 font-bold block mt-1">جاري الرفع...</span>}
-            {formData.product_image_url && <span className="text-emerald-600 font-bold block mt-1">✅ تم تفعيل الصورة الرئيسية</span>}
-          </div>
-          <div className="pt-2 border-t">
-            <label className="font-bold text-slate-700 block mb-1">معرض الصور (حتى 4 صور)</label>
-            {(formData.gallery_images || []).length < 4 && <input type="file" accept="image/*" onChange={handleGalleryUpload} disabled={uploadingGallery} className="w-full text-xs cursor-pointer" />}
-            {uploadingGallery && <span className="text-emerald-600 font-bold block mt-1">جاري رفع صورة المعرض...</span>}
-            {formData.gallery_images?.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-2">
-                {formData.gallery_images.map((url, idx) => (
-                  <div key={idx} className="relative group border aspect-square rounded-lg overflow-hidden bg-white">
-                    <img src={url} alt="معرض" className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, gallery_images: prev.gallery_images.filter((_, i) => i !== idx) }))} className="absolute inset-0 bg-red-600/80 text-white opacity-0 group-hover:opacity-100 font-bold text-xs flex items-center justify-center transition">حذف</button>
-                  </div>
-                ))}
-              </div>
+            {usedPages < maxPages && (
+              <button
+                onClick={resetToNew}
+                className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:opacity-95 text-white text-xs font-bold rounded-xl shadow-sm transition"
+              >
+                ➕ إضافة صفحة جديدة
+              </button>
             )}
           </div>
+
+          {userPages.length === 0 ? (
+            <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs space-y-1">
+              <span className="text-2xl block mb-1">🚀</span>
+              <p className="font-bold text-slate-700">لا توجد لديك صفحات منشورة بعد</p>
+              <p className="text-[11px] text-slate-400">استخدم النموذج بالأسفل وأنشئ صفحتك الأولى في 60 ثانية</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {userPages.map((page) => (
+                <div
+                  key={page.id}
+                  className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                    editingPageId === page.id
+                      ? 'border-purple-500 bg-purple-50/40 ring-2 ring-purple-500/20'
+                      : 'bg-slate-50/80 hover:bg-slate-50 border-slate-200/80'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-sm text-slate-900">
+                        {page.business_name || 'صفحة بدون اسم'}
+                      </span>
+                                            <span className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-600 font-bold">
+                        {page.template_type === 'product' ? '📦 متجر / منتج' : '🎯 حجز موعد / بيانات'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs">
+                      <a
+                        href={`/${page.slug}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-purple-700 font-mono font-bold hover:underline dir-ltr"
+                      >
+                        /{page.slug}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => copyPageLink(page.slug)}
+                        className="text-[10px] bg-white hover:bg-slate-100 text-slate-700 border px-2 py-0.5 rounded-md font-bold transition"
+                      >
+                        {copiedSlug === page.slug ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                      <span>👁️ الزيارات: <strong className="text-slate-800">{page.views_count || 0}</strong></span>
+                      <span>💬 الطلبات: <strong className="text-emerald-600">{page.clicks_count || 0}</strong></span>
+                      <span>📈 التحويل: <strong className="text-purple-600">{page.views_count > 0 ? ((page.clicks_count / page.views_count) * 100).toFixed(1) : '0.0'}%</strong></span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200/60">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(page)}
+                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition shadow-xs"
+                    >
+                      ✏️ تعديل
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => deletePage(page.id, page.business_name || page.slug)}
+                      className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl transition border border-rose-100"
+                    >
+                      🗑️ حذف
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="p-4 bg-slate-50 rounded-xl space-y-2 border text-xs">
-          <label className="font-bold text-slate-700 block">🎯 البكسلات الإعلانية (اختياري)</label>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <input type="text" placeholder="Meta Pixel ID" value={formData.meta_pixel_id} onChange={e => setFormData({ ...formData, meta_pixel_id: e.target.value })} className="p-2 border rounded-xl bg-white dir-ltr outline-none" />
-            <input type="text" placeholder="TikTok Pixel ID" value={formData.tiktok_pixel_id} onChange={e => setFormData({ ...formData, tiktok_pixel_id: e.target.value })} className="p-2 border rounded-xl bg-white dir-ltr outline-none" />
-            <input type="text" placeholder="Snap Pixel ID" value={formData.snapchat_pixel_id} onChange={e => setFormData({ ...formData, snapchat_pixel_id: e.target.value })} className="p-2 border rounded-xl bg-white dir-ltr outline-none" />
+        {/* نموذج إنشاء أو تعديل الصفحة */}
+        <div id="form-section" className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-5">
+          <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+            <div>
+              <h2 className="text-base font-extrabold text-slate-900">
+                {editingPageId ? '✏️ تعديل بيانات الصفحة المحددة' : '✨ إنشاء ونشر صفحة هبوط جديدة'}
+              </h2>
+              <p className="text-[11px] text-slate-400">
+                {editingPageId ? 'قم بتحديث النصوص والبيانات ثم اضغط حفظ' : 'أدخل بيانات نشاطك ليتم تجهيز رابطك فوراً'}
+              </p>
+            </div>
+            {editingPageId && (
+              <button
+                type="button"
+                onClick={resetToNew}
+                className="text-xs text-purple-700 hover:underline font-bold"
+              >
+                إلغاء التعديل / إنشاء جديد ✕
+              </button>
+            )}
           </div>
+
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">نوع القالب والنشاط</label>
+                <select
+                  value={formData.template_type}
+                  onChange={e => setFormData({ ...formData, template_type: e.target.value })}
+                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
+                >
+                  <option value="booking">🎯 حجز موعد / تجميع بيانات (عيادات، مدرسين، صالونات)</option>
+                  <option value="product">📦 بيع منتج مباشر (متاجر إلكترونية ودروب شيبينغ)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">اسم الرابط بالإنجليزية (Slug)</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="مثال: dr-walaa أو offer-1"
+                  value={formData.slug}
+                  onChange={e => setFormData({ ...formData, slug: e.target.value })}
+                  className="w-full p-3 border border-slate-200 rounded-2xl dir-ltr outline-none focus:border-purple-500 bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">اسم النشاط / المركز / المتجر</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.business_name}
+                  onChange={e => setFormData({ ...formData, business_name: e.target.value })}
+                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">رقم الواتساب مع كود الدولة</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="2010xxxxxxxx"
+                  value={formData.whatsapp_number}
+                  onChange={e => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                  className="w-full p-3 border border-slate-200 rounded-2xl dir-ltr outline-none focus:border-purple-500 bg-white font-mono"
+                />
+              </div>
+            </div>
+
+            {formData.template_type === 'booking' && (
+              <div className="p-4 bg-purple-50/60 rounded-2xl space-y-3 border border-purple-100 text-xs">
+                <h3 className="font-bold text-purple-950">🗓️ إعدادات الفروع والأوقات المتاحة للحجز:</h3>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">الفروع / القاعات (مفصولة بفاصلة):</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: فرع دمياط الجديدة, فرع المنصورة"
+                    value={formData.branches}
+                    onChange={e => setFormData({ ...formData, branches: e.target.value })}
+                    className="w-full p-2.5 bg-white border border-purple-200 rounded-xl outline-none focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">أوقات الحجز اليومية (مفصولة بفاصلة):</label>
+                  <input
+                    type="text"
+                    placeholder="12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م"
+                    value={formData.available_times}
+                    onChange={e => setFormData({ ...formData, available_times: e.target.value })}
+                    className="w-full p-2.5 bg-white border border-purple-200 rounded-xl outline-none focus:border-purple-500"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="text-xs">
+              <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي الجذاب</label>
+              <input
+                type="text"
+                required
+                value={formData.headline}
+                onChange={e => setFormData({ ...formData, headline: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
+              />
+            </div>
+
+            <div className="text-xs">
+              <label className="font-bold text-slate-700 block mb-1">الوصف وتفاصيل العرض</label>
+              <textarea
+                rows="3"
+                value={formData.description}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
+              ></textarea>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl space-y-3 border border-slate-200/70 text-xs">
+              {formData.template_type === 'product' && (
+                <div>
+                  <label className="font-bold text-slate-700 block mb-1">سعر المنتج (اختياري)</label>
+                  <input
+                    type="text"
+                    placeholder="مثال: 350"
+                    value={formData.product_price}
+                    onChange={e => setFormData({ ...formData, product_price: e.target.value })}
+                    className="w-full p-2.5 border border-slate-200 rounded-xl bg-white outline-none focus:border-purple-500"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="font-bold text-slate-700 block mb-1">الصورة الرئيسية</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleMainUpload}
+                  disabled={uploadingMain}
+                  className="w-full text-xs cursor-pointer"
+                />
+                {uploadingMain && <span className="text-purple-600 font-bold block mt-1">جاري الرفع...</span>}
+                {formData.product_image_url && <span className="text-emerald-600 font-bold block mt-1">✅ تم تفعيل الصورة الرئيسية</span>}
+              </div>
+
+              <div className="pt-2 border-t border-slate-200">
+                <label className="font-bold text-slate-700 block mb-1">معرض الصور (حتى 4 صور إضافية)</label>
+                {(formData.gallery_images || []).length < 4 && (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleGalleryUpload}
+                    disabled={uploadingGallery}
+                    className="w-full text-xs cursor-pointer"
+                  />
+                )}
+                {uploadingGallery && <span className="text-purple-600 font-bold block mt-1">جاري رفع صورة المعرض...</span>}
+                {formData.gallery_images?.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {formData.gallery_images.map((url, idx) => (
+                      <div key={idx} className="relative group border aspect-square rounded-xl overflow-hidden bg-white shadow-xs">
+                        <img src={url} alt="معرض" className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, gallery_images: prev.gallery_images.filter((_, i) => i !== idx) }))}
+                          className="absolute inset-0 bg-rose-600/80 text-white opacity-0 group-hover:opacity-100 font-bold text-xs flex items-center justify-center transition"
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-200/70 text-xs">
+              <label className="font-bold text-slate-700 block">🎯 أكواد التتبع والبكسلات الإعلانية (Pixels)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  placeholder="Meta Pixel ID"
+                  value={formData.meta_pixel_id}
+                  onChange={e => setFormData({ ...formData, meta_pixel_id: e.target.value })}
+                  className="p-2.5 border border-slate-200 rounded-xl bg-white dir-ltr outline-none focus:border-purple-500"
+                />
+                <input
+                  type="text"
+                  placeholder="TikTok Pixel ID"
+                  value={formData.tiktok_pixel_id}
+                  onChange={e => setFormData({ ...formData, tiktok_pixel_id: e.target.value })}
+                  className="p-2.5 border border-slate-200 rounded-xl bg-white dir-ltr outline-none focus:border-purple-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Snap Pixel ID"
+                  value={formData.snapchat_pixel_id}
+                  onChange={e => setFormData({ ...formData, snapchat_pixel_id: e.target.value })}
+                  className="p-2.5 border border-slate-200 rounded-xl bg-white dir-ltr outline-none focus:border-purple-500"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving || uploadingMain || uploadingGallery}
+              className="w-full py-4 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 text-white font-extrabold rounded-2xl shadow-xl shadow-purple-500/20 transition transform active:scale-95 text-sm disabled:opacity-60"
+            >
+              {saving ? 'جاري الحفظ والتحميل...' : editingPageId ? '💾 حفظ تعديلات الصفحة' : '🚀 حفظ ونشر الصفحة الجديدة'}
+            </button>
+          </form>
         </div>
 
-        <button type="submit" disabled={saving || uploadingMain || uploadingGallery} className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl shadow transition">
-          {saving ? 'جاري الحفظ...' : editingPageId ? '💾 حفظ تعديلات الصفحة' : '🚀 حفظ ونشر الصفحة الجديدة'}
-        </button>
-      </form>
+      </div>
     </div>
-  </div>
-)
+  )
 }
