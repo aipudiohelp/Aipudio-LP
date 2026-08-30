@@ -32,13 +32,15 @@ export default function Dashboard() {
     clicks_count: 0,
   })
 
-  // بيانات حسابات الدفع الخاصة بك (قم بتعديلها)
+  // بيانات حسابات الدفع المحدثة
   const PAYMENT_INFO = {
-    instapay_id: 'your-instapay-id@instapay',
-    vodafone_cash: '01501665571',
-    support_whatsapp: '201005825888',
-    monthly_price: '99 ج.م',
-    yearly_price: '799 ج.م',
+    account_holder: 'مصطفى بدر',
+    instapay_id: 'mustafa.nbe015@instapay', // معرف إنستاباي
+    instapay_phone: '01501665571',        // رقم الهاتف لإنستاباي
+    vodafone_cash: '01501665571',         // رقم فودافون كاش / المحافظ
+    support_whatsapp: '201005825888',     // رقم واتساب الإدارة لاستقبال الإيصالات (بدون +)
+    monthly_price: '99 ج.م / شهرياً',
+    yearly_price: '799 ج.م / سنوياً',
   }
 
   useEffect(() => {
@@ -160,20 +162,20 @@ export default function Dashboard() {
 
   if (loading) return <div className="p-8 text-center text-slate-600 font-bold">جاري تحميل لوحة التحكم...</div>
 
-  // حساب الأيام المتبقية للاشتراك
   const now = new Date()
   const endDate = profile?.subscription_end ? new Date(profile.subscription_end) : null
   const daysLeft = endDate ? Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)) : 0
   const isSubscriptionActive = profile?.is_active && daysLeft > 0
 
+  // رسالة الواتساب المحدثة باسم Aipudio-LP
   const sendPaymentProof = () => {
-    const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة صفحات الهبوط:\n📧 البريد المسجل: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل لتفعيل الاشتراك.`
+    const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد المسجل: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل لتفعيل الاشتراك.`
     window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
   }
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      {/* الهيدر */}
+      {/* الهيدر العلوي */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -209,7 +211,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* شريط حالة الاشتراك والترقية */}
+      {/* شريط حالة الاشتراك */}
       <div className={`p-5 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border ${
         isSubscriptionActive
           ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
@@ -239,10 +241,10 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* نافذة تفاصيل الدفع (Payment Modal) */}
+      {/* نافذة تفاصيل الدفع المحدثة */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-3">
               <h3 className="font-extrabold text-lg text-slate-800">طرق الدفع والتفعيل الفوري</h3>
               <button
@@ -251,25 +253,48 @@ export default function Dashboard() {
               >✕</button>
             </div>
 
+            {/* اسم صاحب الحساب المستفيد */}
+            <div className="bg-slate-100 p-3 rounded-xl flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-semibold">اسم صاحب الحساب المستفيد:</span>
+              <span className="font-bold text-slate-800 text-sm">{PAYMENT_INFO.account_holder}</span>
+            </div>
+
             <div className="space-y-3 text-sm">
-              <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
-                <span className="font-bold text-purple-900 block mb-1">⚡ التحويل عبر InstaPay:</span>
-                <code className="text-xs bg-white px-2 py-1 rounded border font-mono font-bold text-slate-800 block text-center">
-                  {PAYMENT_INFO.instapay_id}
-                </code>
+              {/* إنستاباي */}
+              <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-100 space-y-1.5">
+                <span className="font-bold text-purple-900 text-xs block">⚡ التحويل عبر InstaPay (معرف / رقم):</span>
+                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border text-xs font-mono font-bold text-slate-800">
+                  <span className="text-[11px] text-slate-400 font-normal">المعرف:</span>
+                  <span>{PAYMENT_INFO.instapay_id}</span>
+                </div>
+                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-lg border text-xs font-mono font-bold text-slate-800">
+                  <span className="text-[11px] text-slate-400 font-normal">رقم الهاتف:</span>
+                  <span>{PAYMENT_INFO.instapay_phone}</span>
+                </div>
               </div>
 
-              <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
-                <span className="font-bold text-red-900 block mb-1">📱 التحويل عبر فودافون كاش / المحافظ:</span>
-                <code className="text-xs bg-white px-2 py-1 rounded border font-mono font-bold text-slate-800 block text-center">
+              {/* فودافون كاش */}
+              <div className="bg-red-50 p-3.5 rounded-2xl border border-red-100">
+                <span className="font-bold text-red-900 text-xs block mb-1.5">📱 التحويل عبر فودافون كاش / المحافظ:</span>
+                <code className="text-sm bg-white py-1.5 rounded-lg border font-mono font-black text-slate-800 block text-center">
                   {PAYMENT_INFO.vodafone_cash}
                 </code>
               </div>
             </div>
 
-            <div className="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-600 space-y-1">
-              <p>• الاشتراك الشهري: <strong>{PAYMENT_INFO.monthly_price}</strong></p>
-              <p>• الاشتراك السنوي: <strong>{PAYMENT_INFO.yearly_price}</strong> (خصم شهرين مجاناً)</p>
+            {/* الباقات ونسبة الخصم 35% */}
+            <div className="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-700 space-y-1.5 border border-slate-100">
+              <div className="flex justify-between">
+                <span>• الاشتراك الشهري:</span>
+                <strong className="text-slate-900">{PAYMENT_INFO.monthly_price}</strong>
+              </div>
+              <div className="flex justify-between items-center">
+                <span>• الاشتراك السنوي:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="bg-red-100 text-red-700 font-bold px-1.5 py-0.5 rounded text-[10px]">خصم 35% 🔥</span>
+                  <strong className="text-emerald-700">{PAYMENT_INFO.yearly_price}</strong>
+                </div>
+              </div>
             </div>
 
             <button
@@ -282,7 +307,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* الإحصائيات */}
+      {/* قسم الإحصائيات */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
@@ -325,7 +350,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* نموذج الإعدادات */}
+      {/* نموذج التعديل */}
       <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
         <h2 className="text-lg font-bold text-slate-800 border-b pb-3">إعدادات صفحة الهبوط</h2>
 
@@ -439,92 +464,4 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div className="pt-3 border-t border-slate-200">
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-xs font-bold text-slate-700">
-                معرض صور إضافي (حتى 4 صور إضافية)
-              </label>
-              <span className="text-[11px] text-slate-400">({formData.gallery_images?.length || 0} / 4)</span>
-            </div>
-
-            {(formData.gallery_images?.length || 0) < 4 && (
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleGalleryUpload}
-                disabled={uploadingGallery}
-                className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-800 cursor-pointer"
-              />
-            )}
-            {uploadingGallery && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع صورة المعرض...</span>}
-
-            {formData.gallery_images?.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {formData.gallery_images.map((url, idx) => (
-                  <div key={idx} className="relative group rounded-xl overflow-hidden border aspect-square bg-white">
-                    <img src={url} alt="معرض" className="w-full h-full object-cover" />
-                    <button
-                      type="button"
-                      onClick={() => removeGalleryImage(idx)}
-                      className="absolute inset-0 bg-red-600/80 text-white font-bold text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
-                    >
-                      حذف
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* قسم البكسلات */}
-        <div className="p-5 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
-          <h3 className="font-bold text-slate-800 text-sm">🎯 التتبع الإعلاني والـ Pixels (اختياري)</h3>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Meta Pixel (Facebook & Insta)</label>
-              <input
-                type="text"
-                placeholder="1234567890"
-                value={formData.meta_pixel_id}
-                onChange={(e) => setFormData({ ...formData, meta_pixel_id: e.target.value })}
-                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">TikTok Pixel ID</label>
-              <input
-                type="text"
-                placeholder="C1234567890ABC"
-                value={formData.tiktok_pixel_id}
-                onChange={(e) => setFormData({ ...formData, tiktok_pixel_id: e.target.value })}
-                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Snapchat Pixel ID</label>
-              <input
-                type="text"
-                placeholder="xxxxxxxx-xxxx-xxxx"
-                value={formData.snapchat_pixel_id}
-                onChange={(e) => setFormData({ ...formData, snapchat_pixel_id: e.target.value })}
-                className="w-full px-3.5 py-2 border rounded-xl outline-none text-xs bg-white dir-ltr text-right"
-              />
-            </div>
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving || uploadingMain || uploadingGallery}
-          className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold rounded-xl transition shadow-lg shadow-emerald-600/20 text-base"
-        >
-          {saving ? 'جاري حفظ التعديلات...' : 'حفظ ونشر الصفحة 🚀'}
-        </button>
-      </form>
-    </div>
-  )
-}
+          <d
