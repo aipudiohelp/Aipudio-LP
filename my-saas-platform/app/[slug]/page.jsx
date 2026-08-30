@@ -52,17 +52,34 @@ export default function DynamicLandingPage() {
           cleanSlug = rawSlug.toLowerCase().trim()
         }
 
-        const { data } = await supabase
+                const { data } = await supabase
           .from('landing_pages')
-          .select('*')
+          .select('*, profiles!inner(is_active, subscription_end)')
           .ilike('slug', cleanSlug)
           .eq('is_published', true)
           .maybeSingle()
 
         if (isMounted) {
           if (data) {
-            setPageData(data)
-            setSelectedImage(data.product_image_url || '')
+            const endDate = data.profiles?.subscription_end ? new Date(data.profiles.subscription_end) : null
+            const isExpired = !data.profiles?.is_active || (endDate && endDate < new Date())
+
+            if (isExpired) {
+              setPageData(null) // إخفاء الصفحة لأن الاشتراك منتهٍ
+            } else {
+              setPageData(data)
+              setSelectedImage(data.product_image_url || '')
+
+              if (!viewCounted.current) {
+                supabase.rpc('increment_view', { p_slug: cleanSlug }).then(() => {})
+                viewCounted.current = true
+              }
+            }
+          } else {
+            setPageData(null)
+          }
+          setLoading(false)
+        }
 
             // تسجيل الزيارة مرة واحدة فقط
             if (!viewCounted.current) {
