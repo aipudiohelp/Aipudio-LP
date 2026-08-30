@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [uploadingMain, setUploadingMain] = useState(false)
   const [uploadingGallery, setUploadingGallery] = useState(false)
   const [origin, setOrigin] = useState('')
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
   const router = useRouter()
 
   const [formData, setFormData] = useState({
@@ -30,6 +31,15 @@ export default function Dashboard() {
     views_count: 0,
     clicks_count: 0,
   })
+
+  // بيانات حسابات الدفع الخاصة بك (قم بتعديلها)
+  const PAYMENT_INFO = {
+    instapay_id: 'your-instapay-id@instapay',
+    vodafone_cash: '01501665571',
+    support_whatsapp: '01005825888',
+    monthly_price: '199 ج.م',
+    yearly_price: '1499 ج.م',
+  }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,7 +80,6 @@ export default function Dashboard() {
     loadData()
   }, [router])
 
-  // رفع الصورة الرئيسية
   const handleMainUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
@@ -89,11 +98,9 @@ export default function Dashboard() {
     }
   }
 
-  // رفع صورة لمعرض الصور المتعدد
   const handleGalleryUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-
     if ((formData.gallery_images || []).length >= 4) {
       alert('الحد الأقصى لمعرض الصور هو 4 صور إضافية.')
       return
@@ -117,10 +124,10 @@ export default function Dashboard() {
     }
   }
 
-  const removeGalleryImage = (indexToRemove) => {
+  const removeGalleryImage = (idxToRemove) => {
     setFormData(prev => ({
       ...prev,
-      gallery_images: prev.gallery_images.filter((_, idx) => idx !== indexToRemove)
+      gallery_images: prev.gallery_images.filter((_, idx) => idx !== idxToRemove)
     }))
   }
 
@@ -141,7 +148,7 @@ export default function Dashboard() {
     if (error) {
       alert('خطأ أثناء الحفظ: ' + error.message)
     } else {
-      alert('تم حفظ وتحديث صفحة الهبوط والإعدادات بنجاح!')
+      alert('تم حفظ وتحديث صفحة الهبوط بنجاح!')
     }
     setSaving(false)
   }
@@ -153,13 +160,20 @@ export default function Dashboard() {
 
   if (loading) return <div className="p-8 text-center text-slate-600 font-bold">جاري تحميل لوحة التحكم...</div>
 
-  const views = formData.views_count || 0
-  const clicks = formData.clicks_count || 0
-  const conversionRate = views > 0 ? ((clicks / views) * 100).toFixed(1) : '0.0'
+  // حساب الأيام المتبقية للاشتراك
+  const now = new Date()
+  const endDate = profile?.subscription_end ? new Date(profile.subscription_end) : null
+  const daysLeft = endDate ? Math.ceil((endDate - now) / (1000 * 60 * 60 * 24)) : 0
+  const isSubscriptionActive = profile?.is_active && daysLeft > 0
+
+  const sendPaymentProof = () => {
+    const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة صفحات الهبوط:\n📧 البريد المسجل: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل لتفعيل الاشتراك.`
+    window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      {/* الشريط العلوي */}
+      {/* الهيدر */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -195,38 +209,107 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* قسم الإحصائيات ومعدل التحويل (Analytics) */}
+      {/* شريط حالة الاشتراك والترقية */}
+      <div className={`p-5 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border ${
+        isSubscriptionActive
+          ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900'
+          : 'bg-red-50 border-red-200 text-red-900'
+      }`}>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-base">
+              {isSubscriptionActive ? '✅ الاشتراك ساري' : '⛔ انتهت فترة الاشتراك أو التجربة'}
+            </span>
+            <span className="text-xs bg-white px-2.5 py-0.5 rounded-full font-bold shadow-sm">
+              {profile?.plan_type === 'trial' ? 'تجريبي مجاني' : 'باقة مفعلة'}
+            </span>
+          </div>
+          <p className="text-xs mt-1 opacity-80">
+            {isSubscriptionActive
+              ? `متبقي ${daysLeft} يوماً حتى تاريخ (${endDate?.toLocaleDateString('ar-EG')})`
+              : 'صفحتك معلقة حالياً عن استقبال الزوار. يرجى تجديد الاشتراك لإعادة التفعيل فوراً.'}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowPaymentModal(true)}
+          className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-xl transition shadow-md whitespace-nowrap"
+        >
+          💳 تفعيل / تجديد الاشتراك
+        </button>
+      </div>
+
+      {/* نافذة تفاصيل الدفع (Payment Modal) */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5">
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-extrabold text-lg text-slate-800">طرق الدفع والتفعيل الفوري</h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xl"
+              >✕</button>
+            </div>
+
+            <div className="space-y-3 text-sm">
+              <div className="bg-purple-50 p-4 rounded-2xl border border-purple-100">
+                <span className="font-bold text-purple-900 block mb-1">⚡ التحويل عبر InstaPay:</span>
+                <code className="text-xs bg-white px-2 py-1 rounded border font-mono font-bold text-slate-800 block text-center">
+                  {PAYMENT_INFO.instapay_id}
+                </code>
+              </div>
+
+              <div className="bg-red-50 p-4 rounded-2xl border border-red-100">
+                <span className="font-bold text-red-900 block mb-1">📱 التحويل عبر فودافون كاش / المحافظ:</span>
+                <code className="text-xs bg-white px-2 py-1 rounded border font-mono font-bold text-slate-800 block text-center">
+                  {PAYMENT_INFO.vodafone_cash}
+                </code>
+              </div>
+            </div>
+
+            <div className="bg-slate-50 p-3.5 rounded-xl text-xs text-slate-600 space-y-1">
+              <p>• الاشتراك الشهري: <strong>{PAYMENT_INFO.monthly_price}</strong></p>
+              <p>• الاشتراك السنوي: <strong>{PAYMENT_INFO.yearly_price}</strong> (خصم شهرين مجاناً)</p>
+            </div>
+
+            <button
+              onClick={sendPaymentProof}
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2"
+            >
+              <span>💬 إرسال صورة التحويل عبر واتساب للتفعيل</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* الإحصائيات */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-400">إجمالي الزيارات (Views)</span>
-            <p className="text-2xl font-black text-slate-800 mt-1">{views}</p>
+            <span className="text-xs font-semibold text-slate-400">إجمالي الزيارات</span>
+            <p className="text-2xl font-black text-slate-800 mt-1">{formData.views_count || 0}</p>
           </div>
           <span className="text-2xl p-3 bg-blue-50 text-blue-600 rounded-2xl">👁️</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-400">طلبات الواتساب (Clicks)</span>
-            <p className="text-2xl font-black text-emerald-600 mt-1">{clicks}</p>
+            <span className="text-xs font-semibold text-slate-400">طلبات الواتساب</span>
+            <p className="text-2xl font-black text-emerald-600 mt-1">{formData.clicks_count || 0}</p>
           </div>
           <span className="text-2xl p-3 bg-emerald-50 text-emerald-600 rounded-2xl">💬</span>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
           <div>
-            <span className="text-xs font-semibold text-slate-400">معدل التحويل (Conversion)</span>
-            <p className="text-2xl font-black text-purple-600 mt-1">{conversionRate}%</p>
+            <span className="text-xs font-semibold text-slate-400">معدل التحويل</span>
+            <p className="text-2xl font-black text-purple-600 mt-1">
+              {formData.views_count > 0 ? ((formData.clicks_count / formData.views_count) * 100).toFixed(1) : '0.0'}%
+            </p>
           </div>
           <span className="text-2xl p-3 bg-purple-50 text-purple-600 rounded-2xl">📈</span>
         </div>
       </div>
-
-      {!profile?.is_active && (
-        <div className="bg-amber-50 border-r-4 border-amber-500 p-4 rounded-xl mb-6 text-amber-900 text-sm font-medium">
-          ⚠️ <strong>تنبيه:</strong> حسابك في وضع المعاينة. بعد حفظ الإعدادات، تواصل مع الإدارة لتفعيل نشر الصفحة للعامة.
-        </div>
-      )}
 
       {formData.slug && (
         <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl mb-6 flex flex-col sm:flex-row justify-between items-center gap-3">
@@ -242,6 +325,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* نموذج الإعدادات */}
       <form onSubmit={handleSave} className="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-100 space-y-6">
         <h2 className="text-lg font-bold text-slate-800 border-b pb-3">إعدادات صفحة الهبوط</h2>
 
@@ -318,7 +402,7 @@ export default function Dashboard() {
           ></textarea>
         </div>
 
-        {/* قسم رفع الصور ومعرض الصور المتعدد */}
+        {/* قسم الصور */}
         <div className="p-5 bg-slate-50 rounded-2xl space-y-5 border border-slate-200">
           <h3 className="font-bold text-slate-800 text-sm">
             {formData.template_type === 'product' ? 'صور المنتج والتفاصيل:' : 'صور الخدمة والغلاف:'}
@@ -337,7 +421,6 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* الصورة الأساسية */}
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">الصورة الرئيسية للمنتج</label>
             <input
@@ -347,7 +430,7 @@ export default function Dashboard() {
               disabled={uploadingMain}
               className="block w-full text-xs text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-600 file:text-white hover:file:bg-emerald-700 cursor-pointer"
             />
-            {uploadingMain && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع الصورة الرئيسية...</span>}
+            {uploadingMain && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع الصورة...</span>}
             {formData.product_image_url && (
               <div className="mt-2 flex items-center gap-3 bg-white p-2 rounded-xl border">
                 <img src={formData.product_image_url} alt="الرئيسية" className="w-12 h-12 object-cover rounded-lg border" />
@@ -356,11 +439,10 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* معرض الصور الإضافية (Gallery) */}
           <div className="pt-3 border-t border-slate-200">
             <div className="flex justify-between items-center mb-2">
               <label className="text-xs font-bold text-slate-700">
-                معرض صور إضافي (حتى 4 صور للمعاينة أو آراء العملاء)
+                معرض صور إضافي (حتى 4 صور إضافية)
               </label>
               <span className="text-[11px] text-slate-400">({formData.gallery_images?.length || 0} / 4)</span>
             </div>
@@ -374,7 +456,7 @@ export default function Dashboard() {
                 className="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-700 file:text-white hover:file:bg-slate-800 cursor-pointer"
               />
             )}
-            {uploadingGallery && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع الصورة للمعرض...</span>}
+            {uploadingGallery && <span className="text-xs text-emerald-600 font-bold block mt-1">جاري رفع صورة المعرض...</span>}
 
             {formData.gallery_images?.length > 0 && (
               <div className="grid grid-cols-4 gap-2 mt-3">
@@ -395,7 +477,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* قسم البكسلات والتتبع الإعلاني (Pixels) */}
+        {/* قسم البكسلات */}
         <div className="p-5 bg-slate-50 rounded-2xl space-y-4 border border-slate-200">
           <h3 className="font-bold text-slate-800 text-sm">🎯 التتبع الإعلاني والـ Pixels (اختياري)</h3>
 
