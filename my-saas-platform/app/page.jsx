@@ -1,26 +1,25 @@
 'use client'
 import Link from 'next/link'
-import Image from 'next/image'
 
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col justify-between selection:bg-purple-500 selection:text-white relative overflow-hidden">
-      {/* خلفية جمالية بتوهج ناعم مستوحى من ألوان الشعار */}
+      {/* خلفية جمالية بتوهج ناعم متناسق مع الشعار */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-purple-400/15 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-cyan-400/15 rounded-full blur-3xl pointer-events-none"></div>
 
       {/* الهيدر العلوي */}
       <header className="max-w-5xl mx-auto w-full p-5 sm:p-6 flex justify-between items-center relative z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 relative rounded-2xl overflow-hidden shadow-md shadow-purple-500/20 bg-slate-900 flex items-center justify-center p-1 border border-purple-500/30">
+          <div className="w-10 h-10 relative rounded-2xl overflow-hidden shadow-md shadow-purple-500/20 bg-slate-950 flex items-center justify-center p-1 border border-purple-500/30">
             <img src="/logo.png" alt="Aipudio Logo" className="w-full h-full object-contain" />
           </div>
           <div>
             <span className="text-lg font-black tracking-tight bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
               Aipudio-LP
             </span>
-            <span className="block text-[10px] text-slate-400 font-semibold -mt-1 tracking-wider uppercase">
-              Smart Landing Pages
+            <span className="block text-[10px] text-slate-400 font-semibold -mt-1 tracking-wider">
+              روابط البيع والحجز المباشر
             </span>
           </div>
         </div>
@@ -35,7 +34,7 @@ export default function HomePage() {
 
       {/* القسم الرئيسي (Hero Section) */}
       <main className="max-w-3xl mx-auto w-full px-4 py-8 sm:py-12 flex flex-col items-center text-center relative z-10 space-y-6">
-        {/* الشعار الرئيسي ثلاثي الأبعاد */}
+        {/* الشعار ثلاثي الأبعاد */}
         <div className="relative group">
           <div className="absolute -inset-2 bg-gradient-to-r from-purple-600 to-cyan-500 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-500"></div>
           <div className="w-24 h-24 sm:w-28 sm:h-28 relative rounded-3xl overflow-hidden bg-slate-950 p-2 border border-purple-400/30 shadow-2xl flex items-center justify-center">
@@ -43,10 +42,10 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* الشارة الترويجية */}
+        {/* الشارة المعتمدة الجديدة */}
         <div className="inline-flex items-center gap-2 bg-purple-50 border border-purple-200 text-purple-800 px-4 py-1.5 rounded-full text-xs font-bold shadow-sm">
           <span className="text-cyan-600 font-black">⚡</span>
-          <span>منصة صفحات الهبوط الأسرع في مصر والشرق الأوسط</span>
+          <span>أسرع نظام لروابط البيع والحجز المباشر</span>
         </div>
 
         {/* العنوان الرئيسي والوصف */}
@@ -59,7 +58,7 @@ export default function HomePage() {
             على الواتساب
           </h1>
           <p className="text-sm sm:text-base text-slate-600 leading-relaxed">
-            في 60 ثانية وبدون أي خبرة برمجية.. أنشئ صفحة فائقة السرعة لبيع منتجك، أو تنظيم حجوزات عيادتك ومجموعاتك التعليمية بضغطة زر واحدة.
+            في 60 ثانية وبدون أي خبرة برمجية.. أنشئ رابطاً فائق السرعة لبيع منتجك، أو استقبال حجوزات عيادتك ومجموعاتك التعليمية مباشرة على رقمك.
           </p>
         </div>
 
@@ -71,7 +70,7 @@ export default function HomePage() {
             </div>
             <h3 className="font-bold text-xs text-slate-900">متاجر ودروب شيبينغ</h3>
             <p className="text-[11px] text-slate-500 leading-normal">
-              صفحة منتج سريع وشراء بضغطة زر بدون سلات متروكة.
+              صفحة منتج سريع وتأكيد الطلب بضغطة زر بدون سلات متروكة.
             </p>
           </div>
 
@@ -96,7 +95,7 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* أزرار الإجراء */}
+        {/* أزرار الإجراء والدخول */}
         <div className="w-full max-w-md space-y-3 pt-4">
           <Link
             href="/login"
@@ -113,7 +112,7 @@ export default function HomePage() {
           </Link>
         </div>
 
-        {/* مميزات سريعة أسفل الزر */}
+        {/* الضمانات والمزايا */}
         <div className="flex flex-wrap justify-center items-center gap-4 text-[11px] font-bold text-slate-500 pt-2">
           <span>✓ تتبع إعلاني دقيق (Pixels)</span>
           <span>✓ تفعيل فوري بدون بطاقة بنكية</span>
@@ -123,8 +122,9 @@ export default function HomePage() {
 
       {/* الفوتر */}
       <footer className="max-w-5xl mx-auto w-full p-6 text-center text-xs text-slate-400 border-t border-slate-200/60 relative z-10">
-        <p>© 2026 Aipudio-LP. جميع الحقوق محفوظة لمنصة Aipudio للحلول الرقمية والذكاء الاصطناعي.</p>
+        <p>© 2026 Aipudio-LP. جميع الحقوق محفوظة لمنصة Aipudio للحلول الرقمية.</p>
       </footer>
     </div>
   )
-}
+      }
+        
