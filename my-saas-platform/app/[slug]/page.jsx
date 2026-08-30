@@ -12,7 +12,7 @@ export default function DynamicLandingPage() {
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState('')
 
-  // عداد تنازلي تفاعلي
+  // عداد تنازلي
   const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 35, seconds: 20 })
 
   // بيانات النموذج
@@ -91,16 +91,13 @@ export default function DynamicLandingPage() {
     }
 
     fetchPage()
-
-    return () => {
-      isMounted = false
-    }
+    return () => { isMounted = false }
   }, [rawSlug])
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 text-white font-bold">
-        جاري تحميل العرض الخاص...
+        جاري تحميل الصفحة...
       </div>
     )
   }
@@ -111,14 +108,16 @@ export default function DynamicLandingPage() {
         <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">
           ✕
         </div>
-        <h1 className="text-2xl font-bold text-slate-800 mb-2">العرض غير متوفر أو قيد المراجعة</h1>
+        <h1 className="text-2xl font-bold text-slate-800 mb-2">الصفحة غير متوفرة أو معلقة</h1>
         <p className="text-slate-500 text-sm">تأكد من كتابة الرابط بشكل صحيح أو أن الاشتراك سارٍ.</p>
       </div>
     )
   }
 
-  const rawPrice = parseFloat(pageData.product_price) || 350
-  const originalPrice = Math.round(rawPrice * 1.55)
+  const isProduct = pageData.template_type === 'product'
+  const rawPrice = pageData.product_price ? parseFloat(pageData.product_price) : null
+  const hasPrice = rawPrice !== null && !isNaN(rawPrice) && rawPrice > 0
+  const originalPrice = hasPrice ? Math.round(rawPrice * 1.55) : null
   const allImages = [pageData.product_image_url, ...(pageData.gallery_images || [])].filter(Boolean)
 
   const handleSubmit = (e) => {
@@ -131,34 +130,32 @@ export default function DynamicLandingPage() {
 
     if (typeof window !== 'undefined') {
       if (window.fbq && pageData.meta_pixel_id) {
-        window.fbq('track', 'Lead', { content_name: pageData.headline, value: rawPrice * quantity, currency: 'EGP' })
+        window.fbq('track', isProduct ? 'Purchase' : 'Lead', { content_name: pageData.headline, value: hasPrice ? rawPrice * quantity : 0, currency: 'EGP' })
       }
       if (window.ttq && pageData.tiktok_pixel_id) {
-        window.ttq.track('CompleteRegistration', { content_name: pageData.headline, value: rawPrice * quantity, currency: 'EGP' })
+        window.ttq.track(isProduct ? 'CompletePayment' : 'SubmitForm', { content_name: pageData.headline })
       }
       if (window.snaptr && pageData.snapchat_pixel_id) {
-        window.snaptr('track', 'SIGN_UP', { price: rawPrice * quantity, currency: 'EGP' })
+        window.snaptr('track', isProduct ? 'PURCHASE' : 'SIGN_UP')
       }
     }
 
     let messageText = ''
-    if (pageData.template_type === 'product') {
-      messageText = `🔥 *طلب شراء جديد (عرض خاص)*\n` +
-        `🏪 *المتجر:* ${pageData.business_name}\n` +
+    if (isProduct) {
+      messageText = `🔥 *طلب شراء جديد من متجر:* ${pageData.business_name}\n` +
         `📦 *المنتج:* ${pageData.headline}\n` +
-        `🔢 *الكمية:* ${quantity}\n` +
-        `💰 *إجمالي السعر:* ${rawPrice * quantity} ج.م\n` +
+        (hasPrice ? `💰 *السعر:* ${rawPrice * quantity} ج.م (الكمية: ${quantity})\n` : '') +
         `👤 *الاسم:* ${name}\n` +
         `📞 *الهاتف:* ${phone}\n` +
         `📍 *العنوان:* ${extraField}\n` +
         (notes ? `📝 *ملاحظات:* ${notes}\n` : '')
     } else {
-      messageText = `🎯 *طلب حجز مؤكد*\n` +
-        `👨‍🏫 *الجهة:* ${pageData.business_name}\n` +
-        `📚 *الخدمة/المادة:* ${pageData.headline}\n` +
-        `👤 *اسم المشترك/الطالب:* ${name}\n` +
+      messageText = `🎯 *طلب حجز موعد جديد:* ${pageData.business_name}\n` +
+        `📋 *الخدمة / التخصص:* ${pageData.headline}\n` +
+        (hasPrice ? `💰 *قيمة الكشف/الخدمة:* ${rawPrice} ج.م\n` : '') +
+        `👤 *اسم المريض / العميل:* ${name}\n` +
         `📞 *رقم الهاتف:* ${phone}\n` +
-        `🗓️ *المجموعة / الموعد:* ${extraField}\n` +
+        `🗓️ *الموعد / الفرع المطلوب:* ${extraField}\n` +
         (notes ? `📝 *ملاحظات:* ${notes}\n` : '')
     }
 
@@ -168,6 +165,7 @@ export default function DynamicLandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
+      {/* Pixels */}
       {pageData.meta_pixel_id && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
@@ -210,14 +208,16 @@ export default function DynamicLandingPage() {
         </Script>
       )}
 
-      <div className="bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs sm:text-sm font-bold py-2 px-4 text-center sticky top-0 z-40 shadow flex items-center justify-center gap-2">
-        <span>⚡ عرض حصري ولفترة محدودة - ينتهي خلال:</span>
+      {/* شريط العداد التنازلي المخصص */}
+      <div className="bg-gradient-to-r from-emerald-700 to-teal-800 text-white text-xs sm:text-sm font-bold py-2.5 px-4 text-center sticky top-0 z-40 shadow flex items-center justify-center gap-2">
+        <span>{isProduct ? '⚡ عرض خاص ولفترة محدودة - ينتهي خلال:' : '⚡ سارع بتأكيد الحجز - المواعيد المتاحة محدودة اليوم:'}</span>
         <span className="bg-black/30 px-2 py-0.5 rounded dir-ltr font-mono">
           {String(timeLeft.hours).padStart(2, '0')}:{String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
         </span>
       </div>
 
       <div className="max-w-xl mx-auto bg-white shadow-xl min-h-screen">
+        {/* الصورة الرئيسية ومعرض الصور */}
         {selectedImage && (
           <div className="space-y-2 p-3 bg-slate-50">
             <div className="relative w-full aspect-square bg-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -226,11 +226,12 @@ export default function DynamicLandingPage() {
                 alt={pageData.headline}
                 className="w-full h-full object-cover transition duration-300"
               />
-              <span className="absolute top-3 right-3 bg-red-600 text-white text-xs font-black px-3 py-1.5 rounded-full shadow">
-                خصم 35% اليوم
+              <span className="absolute top-3 right-3 bg-emerald-600 text-white text-xs font-black px-3 py-1.5 rounded-full shadow">
+                {isProduct ? 'خصم خاص اليوم 🔥' : 'متاح للحجز الآن ✅'}
               </span>
             </div>
 
+            {/* المعرض */}
             {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto py-1">
                 {allImages.map((img, idx) => (
@@ -253,7 +254,7 @@ export default function DynamicLandingPage() {
         <div className="p-5 sm:p-7 space-y-6">
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+              <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
                 {pageData.business_name}
               </span>
               <div className="flex items-center gap-1 text-amber-500 text-xs font-bold">
@@ -266,57 +267,88 @@ export default function DynamicLandingPage() {
               {pageData.headline}
             </h1>
 
-            <div className="mt-4 flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <div>
-                <span className="text-3xl font-black text-emerald-600">{rawPrice} ج.م</span>
-                <span className="text-slate-400 line-through text-sm mr-2">{originalPrice} ج.م</span>
+            {/* عرض السعر فقط في حال وجود سعر مدخل حقيقي */}
+            {hasPrice && (
+              <div className="mt-4 flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <div>
+                  <span className="text-3xl font-black text-emerald-600">{rawPrice} ج.م</span>
+                  {isProduct && originalPrice && (
+                    <span className="text-slate-400 line-through text-sm mr-2">{originalPrice} ج.م</span>
+                  )}
+                </div>
+                {isProduct && originalPrice && (
+                  <span className="text-xs bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-lg">
+                    وفرت {originalPrice - rawPrice} ج.م 🔥
+                  </span>
+                )}
               </div>
-              <span className="text-xs bg-red-100 text-red-700 font-bold px-2.5 py-1 rounded-lg">
-                وفرت {originalPrice - rawPrice} ج.م 🔥
-              </span>
-            </div>
+            )}
           </div>
 
+          {/* شريط الإشغال/المخزون المتكيف */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-bold">
-              <span className="text-red-600">🔥 متبقي 6 قطع/مقاعد فقط بالسعر المخفض</span>
+              <span className={isProduct ? 'text-red-600' : 'text-emerald-700'}>
+                {isProduct ? '🔥 متبقي 6 قطع فقط بالسعر المخفض' : '⏳ متبقي عدد محدود من المواعيد المتاحة هذا الأسبوع'}
+              </span>
               <span className="text-slate-500">تم حجز 84%</span>
             </div>
             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-              <div className="bg-red-500 h-full w-[84%] rounded-full animate-pulse"></div>
+              <div className="bg-emerald-500 h-full w-[84%] rounded-full"></div>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
-              <span className="text-lg">🚚</span>
-              <span>شحن سريع ومجاني</span>
+          {/* شارات الثقة المتكيفة حسب نوع النشاط */}
+          {isProduct ? (
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">🚚</span>
+                <span>شحن سريع ومجاني</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">💵</span>
+                <span>الدفع عند الاستلام</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">🔄</span>
+                <span>ضمان المعاينة والاستبدال</span>
+              </div>
             </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
-              <span className="text-lg">💵</span>
-              <span>الدفع عند الاستلام</span>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">📅</span>
+                <span>تأكيد فوري للموعد</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">🔒</span>
+                <span>خصوصية وسرية تامة</span>
+              </div>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
+                <span className="text-lg">⭐</span>
+                <span>خدمة ورعاية متخصصة</span>
+              </div>
             </div>
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
-              <span className="text-lg">🔄</span>
-              <span>ضمان المعاينة والاستبدال</span>
-            </div>
-          </div>
+          )}
 
           {pageData.description && (
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 mb-2">تفاصيل العرض والمواصفات:</h3>
+              <h3 className="text-sm font-bold text-slate-900 mb-2">
+                {isProduct ? 'تفاصيل العرض والمواصفات:' : 'تفاصيل ومواعيد الخدمة / العيادة:'}
+              </h3>
               <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-line">
                 {pageData.description}
               </p>
             </div>
           )}
 
+          {/* نموذج الحجز / الطلب */}
           <div id="order-form" className="bg-emerald-50/60 p-5 rounded-3xl border-2 border-emerald-500/20">
             <div className="text-center mb-4">
               <h2 className="text-lg font-extrabold text-slate-900">
-                {pageData.template_type === 'product' ? '📦 اطلب الآن وادفع عند الاستلام' : '🎯 سجّل بياناتك لتأكيد الحجز فوراً'}
+                {isProduct ? '📦 اطلب الآن وادفع عند الاستلام' : '🎯 سجّل بياناتك لتأكيد الحجز فوراً'}
               </h2>
-              <p className="text-xs text-slate-500 mt-0.5">املأ النموذج وسيتم التواصل معك مباشرة لتأكيد الطلب</p>
+              <p className="text-xs text-slate-500 mt-0.5">املأ النموذج وسيتم التواصل معك مباشرة لتأكيد التفاصيل</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-3.5">
@@ -325,7 +357,7 @@ export default function DynamicLandingPage() {
                 <input
                   type="text"
                   required
-                  placeholder="أدخل اسمك"
+                  placeholder="أدخل الاسم"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium"
@@ -346,19 +378,19 @@ export default function DynamicLandingPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  {pageData.template_type === 'product' ? 'العنوان بالتفصيل (المحافظة / المدينة / الشارع) *' : 'المجموعة / الموعد / الفصل الدراسي *'}
+                  {isProduct ? 'العنوان بالتفصيل (المحافظة / المدينة / الشارع) *' : 'الفرع / اليوم / الموعد المفضل *'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder={pageData.template_type === 'product' ? 'مثال: الجيزة، الدقي، شارع مصدق' : 'مثال: السبت والثلاثاء - سنتر الأوائل'}
+                  placeholder={isProduct ? 'مثال: الجيزة، الدقي، شارع مصدق' : 'مثال: فرع دمياط الجديدة - الأحد القادم مساءً'}
                   value={extraField}
                   onChange={(e) => setExtraField(e.target.value)}
                   className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none text-sm font-medium"
                 />
               </div>
 
-              {pageData.template_type === 'product' && (
+              {isProduct && hasPrice && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">الكمية المطلوبة</label>
                   <div className="flex items-center gap-3">
@@ -384,29 +416,23 @@ export default function DynamicLandingPage() {
                 type="submit"
                 className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-600/30 transition flex items-center justify-center gap-2 text-base mt-3 transform active:scale-95"
               >
-                <span>💬 {pageData.template_type === 'product' ? 'اضغط هنا لتأكيد الشراء عبر واتساب' : 'اضغط هنا لتأكيد الحجز عبر واتساب'}</span>
+                <span>💬 {isProduct ? 'اضغط هنا لتأكيد الشراء عبر واتساب' : 'اضغط هنا لتأكيد الحجز عبر واتساب'}</span>
               </button>
             </form>
           </div>
         </div>
       </div>
 
+      {/* الزر العائم السفلي المخصص */}
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t border-slate-200 z-50 flex items-center justify-between gap-4 max-w-xl mx-auto">
-        <div>
-          <span className="block text-[11px] text-slate-400 line-through">{originalPrice} ج.م</span>
-          <span className="text-lg font-black text-emerald-600">{rawPrice} ج.م</span>
-        </div>
+        {hasPrice ? (
+          <div>
+            {isProduct && originalPrice && <span className="block text-[11px] text-slate-400 line-through">{originalPrice} ج.م</span>}
+            <span className="text-lg font-black text-emerald-600">{rawPrice} ج.م</span>
+          </div>
+        ) : (
+          <span className="text-xs font-bold text-slate-600">حجز مباشر ومؤكد ⚡</span>
+        )}
         <button
           onClick={() => {
-            const formEl = document.getElementById('order-form')
-            formEl?.scrollIntoView({ behavior: 'smooth' })
-          }}
-          className="flex-1 py-3 bg-emerald-600 text-white font-extrabold rounded-xl shadow-md text-sm text-center"
-        >
-          {pageData.template_type === 'product' ? 'اطلب الآن قبل انتهاء الخصم ⚡' : 'احجز مقعدك الآن ⚡'}
-        </button>
-      </div>
-    </div>
-  )
-      }
-            
+            const form
