@@ -19,6 +19,8 @@ export default function Dashboard() {
   const [formData, setFormData] = useState({
     slug: '', template_type: 'booking', business_name: '', headline: '', description: '',
     whatsapp_number: '', product_price: '', product_image_url: '', gallery_images: [],
+    branches: 'الفرع الرئيسي',
+    available_times: '12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م, 10:00 م',
     meta_pixel_id: '', tiktok_pixel_id: '', snapchat_pixel_id: '', views_count: 0, clicks_count: 0
   })
 
@@ -28,8 +30,8 @@ export default function Dashboard() {
     instapay_phone: '01501665571',
     vodafone_cash: '01501665571',
     support_whatsapp: '201005825888',
-    monthly_price: '99 ج.م / شهرياً',
-    yearly_price: '799 ج.م / سنوياً',
+    monthly_price: '99 ج.م (3 صفحات)',
+    yearly_price: '799 ج.م (10 صفحات)',
   }
 
   useEffect(() => {
@@ -41,13 +43,21 @@ export default function Dashboard() {
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
       setProfile(prof)
       const { data: page } = await supabase.from('landing_pages').select('*').eq('user_id', session.user.id).maybeSingle()
-      if (page) setFormData({ ...page, gallery_images: Array.isArray(page.gallery_images) ? page.gallery_images : [], views_count: page.views_count || 0, clicks_count: page.clicks_count || 0 })
+      if (page) {
+        setFormData({
+          ...page,
+          branches: page.branches || 'الفرع الرئيسي',
+          available_times: page.available_times || '12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م, 10:00 م',
+          gallery_images: Array.isArray(page.gallery_images) ? page.gallery_images : [],
+          views_count: page.views_count || 0,
+          clicks_count: page.clicks_count || 0
+        })
+      }
       setLoading(false)
     }
     loadData()
   }, [router])
 
-  // دالة نسخ النصوص للحافظة
   const copyToClipboard = (text, key) => {
     navigator.clipboard.writeText(text)
     setCopiedKey(key)
@@ -101,7 +111,6 @@ export default function Dashboard() {
 
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-8">
-      {/* الهيدر العلوي */}
       <div className="flex justify-between items-center bg-white p-5 rounded-2xl shadow-sm border mb-6">
         <div className="flex items-center gap-3">
           <Link href="/" className="p-2.5 bg-slate-100 hover:bg-slate-200 rounded-xl transition">🏠</Link>
@@ -116,88 +125,60 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* شريط حالة الاشتراك */}
       <div className={`p-5 rounded-2xl mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border ${isSubscriptionActive ? 'bg-emerald-50/70 border-emerald-200 text-emerald-900' : 'bg-red-50 border-red-200 text-red-900'}`}>
         <div>
           <span className="font-bold text-base">{isSubscriptionActive ? '✅ الاشتراك ساري' : '⛔ انتهت فترة الاشتراك'}</span>
           <p className="text-xs mt-1 opacity-80">{isSubscriptionActive ? `متبقي ${daysLeft} يوماً (${endDate?.toLocaleDateString('ar-EG')})` : 'يرجى تجديد الاشتراك لإعادة التفعيل.'}</p>
         </div>
-        <button onClick={() => setShowPaymentModal(true)} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">💳 تفعيل / تجديد الاشتراك</button>
+        <button onClick={() => setShowPaymentModal(true)} className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition">💳 ترقية / تجديد الاشتراك</button>
       </div>
 
-      {/* نافذة الدفع مع خاصية النسخ */}
       {showPaymentModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b pb-2">
-              <h3 className="font-bold text-lg text-slate-800">طرق الدفع والتفعيل الفوري</h3>
-              <button onClick={() => setShowPaymentModal(false)} className="font-bold text-xl text-slate-400 hover:text-slate-600">✕</button>
+              <h3 className="font-bold text-lg text-slate-800">باقات الاشتراك والتفعيل الفوري</h3>
+              <button onClick={() => setShowPaymentModal(false)} className="font-bold text-xl text-slate-400">✕</button>
             </div>
 
             <div className="bg-slate-100 p-3 rounded-xl flex justify-between text-xs">
-              <span className="text-slate-500 font-semibold">اسم صاحب الحساب المستفيد:</span>
+              <span className="text-slate-500 font-semibold">المستفيد:</span>
               <strong className="text-slate-800 text-sm">{PAYMENT_INFO.account_holder}</strong>
             </div>
 
             <div className="space-y-2.5 text-xs">
-              {/* إنستاباي */}
-              <div className="bg-purple-50 p-3.5 rounded-2xl border border-purple-100 space-y-2">
-                <span className="font-bold text-purple-900 block">⚡ التحويل عبر InstaPay:</span>
-                
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border">
-                  <span className="text-slate-500 text-[11px]">المعرف:</span>
+              <div className="bg-purple-50 p-3 rounded-2xl border border-purple-100 space-y-2">
+                <span className="font-bold text-purple-900 block">⚡ InstaPay:</span>
+                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
                   <span className="font-mono font-bold text-slate-800">{PAYMENT_INFO.instapay_id}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'instapay_id')}
-                    className="text-[11px] bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-2 py-1 rounded-md transition"
-                  >
-                    {copiedKey === 'instapay_id' ? 'تم النسخ ✅' : 'نسخ 📋'}
-                  </button>
+                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'instapay_id')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'instapay_id' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
                 </div>
-
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border">
-                  <span className="text-slate-500 text-[11px]">رقم الهاتف:</span>
+                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
                   <span className="font-mono font-bold text-slate-800">{PAYMENT_INFO.instapay_phone}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'instapay_phone')}
-                    className="text-[11px] bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-2 py-1 rounded-md transition"
-                  >
-                    {copiedKey === 'instapay_phone' ? 'تم النسخ ✅' : 'نسخ 📋'}
-                  </button>
+                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'instapay_phone')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'instapay_phone' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
                 </div>
               </div>
 
-              {/* فودافون كاش */}
-              <div className="bg-red-50 p-3.5 rounded-2xl border border-red-100 space-y-2">
-                <span className="font-bold text-red-900 block">📱 التحويل عبر فودافون كاش / المحافظ:</span>
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border">
-                  <span className="text-slate-500 text-[11px]">رقم المحفظة:</span>
+              <div className="bg-red-50 p-3 rounded-2xl border border-red-100">
+                <span className="font-bold text-red-900 block mb-1">📱 فودافون كاش:</span>
+                <div className="flex items-center justify-between bg-white px-3 py-1.5 rounded-xl border">
                   <span className="font-mono font-black text-slate-800 text-sm">{PAYMENT_INFO.vodafone_cash}</span>
-                  <button
-                    type="button"
-                    onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vodafone_cash')}
-                    className="text-[11px] bg-red-100 hover:bg-red-200 text-red-800 font-bold px-2 py-1 rounded-md transition"
-                  >
-                    {copiedKey === 'vodafone_cash' ? 'تم النسخ ✅' : 'نسخ 📋'}
-                  </button>
+                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vodafone_cash')} className="text-[11px] bg-red-100 text-red-800 font-bold px-2 py-1 rounded-md">{copiedKey === 'vodafone_cash' ? 'تم النسخ ✅' : 'نسخ 📋'}</button>
                 </div>
               </div>
 
-              {/* الأسعار */}
-              <div className="bg-slate-50 p-3 rounded-xl border flex justify-between items-center text-slate-700">
-                <span>• شهري: <strong className="text-slate-900">{PAYMENT_INFO.monthly_price}</strong></span>
-                <span className="flex items-center gap-1">
-                  • سنوي: <span className="bg-red-100 text-red-700 font-bold px-1 rounded text-[10px]">خصم 35% 🔥</span>
-                  <strong className="text-emerald-700">{PAYMENT_INFO.yearly_price}</strong>
-                </span>
+              <div className="bg-slate-50 p-3 rounded-xl border space-y-1.5 text-slate-700">
+                <div className="flex justify-between"><span>• الباقة الشهرية (3 صفحات):</span><strong className="text-slate-900">{PAYMENT_INFO.monthly_price}</strong></div>
+                <div className="flex justify-between items-center">
+                  <span>• الباقة السنوية (10 صفحات):</span>
+                  <span className="flex items-center gap-1"><span className="bg-red-100 text-red-700 font-bold px-1 rounded text-[10px]">خصم 35% 🔥</span><strong className="text-emerald-700">{PAYMENT_INFO.yearly_price}</strong></span>
+                </div>
               </div>
             </div>
 
             <button
               onClick={() => {
-                const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد المسجل: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل لتفعيل الاشتراك.`
+                const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد: ${user.email}\n🏪 النشاط: ${formData.business_name || 'جديد'}\nمرفق صورة التحويل.`
                 window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
               }}
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm shadow transition"
@@ -210,18 +191,9 @@ export default function Dashboard() {
 
       {/* قسم الإحصائيات */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-2xl border shadow-sm">
-          <span className="text-xs text-slate-400">الزيارات</span>
-          <p className="text-xl font-black text-slate-800 mt-1">{formData.views_count || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border shadow-sm">
-          <span className="text-xs text-slate-400">الطلبات</span>
-          <p className="text-xl font-black text-emerald-600 mt-1">{formData.clicks_count || 0}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border shadow-sm">
-          <span className="text-xs text-slate-400">التحويل</span>
-          <p className="text-xl font-black text-purple-600 mt-1">{formData.views_count > 0 ? ((formData.clicks_count / formData.views_count) * 100).toFixed(1) : '0.0'}%</p>
-        </div>
+        <div className="bg-white p-4 rounded-2xl border shadow-sm"><span className="text-xs text-slate-400">الزيارات</span><p className="text-xl font-black text-slate-800 mt-1">{formData.views_count || 0}</p></div>
+        <div className="bg-white p-4 rounded-2xl border shadow-sm"><span className="text-xs text-slate-400">الطلبات</span><p className="text-xl font-black text-emerald-600 mt-1">{formData.clicks_count || 0}</p></div>
+        <div className="bg-white p-4 rounded-2xl border shadow-sm"><span className="text-xs text-slate-400">التحويل</span><p className="text-xl font-black text-purple-600 mt-1">{formData.views_count > 0 ? ((formData.clicks_count / formData.views_count) * 100).toFixed(1) : '0.0'}%</p></div>
       </div>
 
       {formData.slug && (
@@ -233,26 +205,25 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* نموذج التعديل */}
       <form onSubmit={handleSave} className="bg-white p-6 rounded-2xl shadow-sm border space-y-4">
         <h2 className="text-base font-bold text-slate-800 border-b pb-2">إعدادات صفحة الهبوط</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
             <label className="font-bold text-slate-700 block mb-1">نوع القالب</label>
             <select value={formData.template_type} onChange={e => setFormData({ ...formData, template_type: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none">
-              <option value="booking">حجز موعد / تجميع بيانات</option>
-              <option value="product">بيع منتج مباشر</option>
+              <option value="booking">حجز موعد / تجميع بيانات (عيادات، معلمين، صالونات)</option>
+              <option value="product">بيع منتج مباشر (متاجر ودروب شيبينغ)</option>
             </select>
           </div>
           <div>
             <label className="font-bold text-slate-700 block mb-1">اسم الرابط (Slug بالإنجليزية)</label>
-            <input type="text" required placeholder="shop-name" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} className="w-full p-2.5 border rounded-xl dir-ltr outline-none" />
+            <input type="text" required placeholder="مثال: dr-walaa" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} className="w-full p-2.5 border rounded-xl dir-ltr outline-none" />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div>
-            <label className="font-bold text-slate-700 block mb-1">اسم النشاط / المتجر</label>
+            <label className="font-bold text-slate-700 block mb-1">اسم النشاط / المركز / المتجر</label>
             <input type="text" required value={formData.business_name} onChange={e => setFormData({ ...formData, business_name: e.target.value })} className="w-full p-2.5 border rounded-xl outline-none" />
           </div>
           <div>
@@ -260,6 +231,33 @@ export default function Dashboard() {
             <input type="text" required placeholder="2010xxxxxxxx" value={formData.whatsapp_number} onChange={e => setFormData({ ...formData, whatsapp_number: e.target.value })} className="w-full p-2.5 border rounded-xl dir-ltr outline-none" />
           </div>
         </div>
+
+        {/* إعدادات الفروع والأوقات المتاحة لقالب الحجوزات */}
+        {formData.template_type === 'booking' && (
+          <div className="p-4 bg-purple-50/60 rounded-xl space-y-3 border border-purple-100 text-xs">
+            <h3 className="font-bold text-purple-950">🗓️ إعدادات الفروع والأوقات المتاحة للحجز:</h3>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">الفروع / الأماكن (مفصولة بفاصلة):</label>
+              <input
+                type="text"
+                placeholder="مثال: فرع دمياط الجديدة, فرع المنصورة"
+                value={formData.branches}
+                onChange={e => setFormData({ ...formData, branches: e.target.value })}
+                className="w-full p-2.5 bg-white border rounded-xl outline-none"
+              />
+            </div>
+            <div>
+              <label className="font-bold text-slate-700 block mb-1">أوقات الحجز اليومية (مفصولة بفاصلة):</label>
+              <input
+                type="text"
+                placeholder="12:00 م, 02:00 م, 04:00 م, 06:00 م, 08:00 م, 10:00 م"
+                value={formData.available_times}
+                onChange={e => setFormData({ ...formData, available_times: e.target.value })}
+                className="w-full p-2.5 bg-white border rounded-xl outline-none"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="text-xs">
           <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي</label>
@@ -274,7 +272,7 @@ export default function Dashboard() {
         <div className="p-4 bg-slate-50 rounded-xl space-y-3 border text-xs">
           {formData.template_type === 'product' && (
             <div>
-              <label className="font-bold text-slate-700 block mb-1">سعر المنتج</label>
+              <label className="font-bold text-slate-700 block mb-1">سعر المنتج (اختياري)</label>
               <input type="text" placeholder="350" value={formData.product_price} onChange={e => setFormData({ ...formData, product_price: e.target.value })} className="w-full p-2.5 border rounded-xl bg-white outline-none" />
             </div>
           )}
@@ -316,5 +314,5 @@ export default function Dashboard() {
       </form>
     </div>
   )
-      }
-        
+        }
+                          
