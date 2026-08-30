@@ -1,53 +1,92 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import Script from 'next/script'
 
-export default function DynamicLandingPage({ params }) {
+export default function DynamicLandingPage() {
+  const params = useParams()
+  const rawSlug = params?.slug ? (Array.isArray(params.slug) ? params.slug[0] : params.slug) : ''
+
   const [pageData, setPageData] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // حقول نموذج الحجز أو الشراء
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
-  const [extraField, setExtraField] = useState('') // العنوان أو المجموعة
+  const [extraField, setExtraField] = useState('')
   const [notes, setNotes] = useState('')
 
   useEffect(() => {
+    let isMounted = true
+
     async function fetchPage() {
-      if (!slug) return
-      
-      // تنظيف الرابط وتحويله لأحرف صغيرة
-      const cleanSlug = decodeURIComponent(slug).toLowerCase().trim()
+      if (!rawSlug) {
+        if (isMounted) setLoading(false)
+        return
+      }
 
-      const { data, error } = await supabase
-        .from('landing_pages')
-        .select('*')
-        .ilike('slug', cleanSlug)
-        .eq('is_published', true)
-        .single()
+      try {
+        let cleanSlug = rawSlug
+        try {
+          cleanSlug = decodeURIComponent(rawSlug).toLowerCase().trim()
+        } catch (e) {
+          cleanSlug = rawSlug.toLowerCase().trim()
+        }
 
-      if (data) setPageData(data)
-      setLoading(false)
+        // استخدام maybeSingle لمنع انهيار الصفحة في حال عدم وجود الرابط
+        const { data, error } = await supabase
+          .from('landing_pages')
+          .select('*')
+          .ilike('slug', cleanSlug)
+          .eq('is_published', true)
+          .maybeSingle()
+
+        if (isMounted) {
+          if (data) {
+            setPageData(data)
+          } else {
+            setPageData(null)
+          }
+          setLoading(false)
+        }
+      } catch (err) {
+        console.error('Error loading page:', err)
+        if (isMounted) {
+          setPageData(null)
+          setLoading(false)
+        }
+      }
     }
-    fetchPage()
-  }, [slug])
 
+    fetchPage()
+
+    return () => {
+      isMounted = false
+    }
+  }, [rawSlug])
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>
-  }
-
-  if (!pageData) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">الصفحة غير موجودة</h1>
-        <p className="text-slate-500">تأكد من صحة الرابط أو أن الصفحة مفعلة.</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="text-slate-600 font-bold text-lg animate-pulse">جاري تحميل الصفحة...</div>
       </div>
     )
   }
 
-  // آلية بناء وإرسال الرسالة إلى الواتساب
+  if (!pageData) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50">
+        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">
+          ✕
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 mb-2">الصفحة غير موجودة أو قيد المراجعة</h1>
+        <p className="text-slate-500 max-w-sm mb-6 text-sm">
+          تأكد من كتابة الرابط بشكل صحيح، أو أن صاحب النشاط قام بنشر وتفعيل الصفحة.
+        </p>
+      </div>
+    )
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
 
@@ -69,35 +108,36 @@ export default function DynamicLandingPage({ params }) {
         (notes ? `📝 *ملاحظات إضافية:* ${notes}\n` : '')
     }
 
-    const cleanPhone = pageData.whatsapp_number.replace(/\D/g, '')
+    const cleanPhone = (pageData.whatsapp_number || '').replace(/\D/g, '')
     const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(messageText)}`
     
-    // فتح واتساب مباشرة
     window.location.href = whatsappUrl
   }
 
   return (
     <div className="min-h-screen bg-slate-50 flex justify-center p-4 sm:p-6">
-      {/* حقن Meta Pixel إذا وجد */}
       {pageData.meta_pixel_id && (
-        <Script id="meta-pixel" strategy="afterInteractive">
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}(window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${pageData.meta_pixel_id}');
-            fbq('track', 'PageView');
-          `}
-        </Script>
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '${pageData.meta_pixel_id}');
+              fbq('track', 'PageView');
+            `
+          }}
+        />
       )}
 
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col">
-        {/* صورة المنتج إن وجدت */}
         {pageData.template_type === 'product' && pageData.product_image_url && (
           <div className="w-full h-64 sm:h-72 bg-slate-100 overflow-hidden">
             <img
@@ -129,7 +169,6 @@ export default function DynamicLandingPage({ params }) {
               )}
             </div>
 
-            {/* نموذج البيانات */}
             <form onSubmit={handleSubmit} className="space-y-4 bg-slate-50 p-4 sm:p-6 rounded-2xl border border-slate-200">
               <h3 className="font-bold text-slate-800 text-center text-sm sm:text-base mb-2">
                 {pageData.template_type === 'product' ? 'أدخل بيانات التوصيل للطلب' : 'املأ البيانات لتأكيد الحجز فوراً'}
@@ -200,4 +239,5 @@ export default function DynamicLandingPage({ params }) {
       </div>
     </div>
   )
-}
+        }
+    
