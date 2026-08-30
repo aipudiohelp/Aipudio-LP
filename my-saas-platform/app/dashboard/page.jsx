@@ -36,7 +36,7 @@ export default function Dashboard() {
   const PAYMENT_INFO = {
     instapay_id: 'your-instapay-id@instapay',
     vodafone_cash: '01501665571',
-    support_whatsapp: '01005825888',
+    support_whatsapp: '201005825888',
     monthly_price: '199 ج.م',
     yearly_price: '1499 ج.م',
   }
