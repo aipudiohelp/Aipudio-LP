@@ -26,7 +26,7 @@ export default function DynamicLandingPage() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
+      setTimeLeft((prev) => {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 }
         if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 }
         if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 }
@@ -38,6 +38,7 @@ export default function DynamicLandingPage() {
 
   useEffect(() => {
     let isMounted = true
+
     async function fetchPage() {
       if (!rawSlug) {
         if (isMounted) setLoading(false)
@@ -49,23 +50,24 @@ export default function DynamicLandingPage() {
         try {
           cleanSlug = decodeURIComponent(rawSlug).toLowerCase().trim()
         } catch (e) {
-          cleanSlug = rawSlug.toLowerCase().trim()
+          cleanSlug = String(rawSlug).toLowerCase().trim()
         }
 
-                const { data } = await supabase
+        const { data } = await supabase
           .from('landing_pages')
-          .select('*, profiles!inner(is_active, subscription_end)')
+          .select('*, profiles:user_id(is_active, subscription_end)')
           .ilike('slug', cleanSlug)
           .eq('is_published', true)
           .maybeSingle()
 
         if (isMounted) {
           if (data) {
-            const endDate = data.profiles?.subscription_end ? new Date(data.profiles.subscription_end) : null
-            const isExpired = !data.profiles?.is_active || (endDate && endDate < new Date())
+            const userProfile = data.profiles
+            const endDate = userProfile?.subscription_end ? new Date(userProfile.subscription_end) : null
+            const isExpired = userProfile && (!userProfile.is_active || (endDate && endDate < new Date()))
 
             if (isExpired) {
-              setPageData(null) // إخفاء الصفحة لأن الاشتراك منتهٍ
+              setPageData(null)
             } else {
               setPageData(data)
               setSelectedImage(data.product_image_url || '')
@@ -80,21 +82,19 @@ export default function DynamicLandingPage() {
           }
           setLoading(false)
         }
-
-            // تسجيل الزيارة مرة واحدة فقط
-            if (!viewCounted.current) {
-              supabase.rpc('increment_view', { p_slug: cleanSlug }).then(() => {})
-              viewCounted.current = true
-            }
-          }
+      } catch (err) {
+        if (isMounted) {
+          setPageData(null)
           setLoading(false)
         }
-      } catch (err) {
-        if (isMounted) setLoading(false)
       }
     }
+
     fetchPage()
-    return () => { isMounted = false }
+
+    return () => {
+      isMounted = false
+    }
   }, [rawSlug])
 
   if (loading) {
@@ -108,8 +108,11 @@ export default function DynamicLandingPage() {
   if (!pageData) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center bg-slate-50">
+        <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-2xl font-bold mb-4">
+          ✕
+        </div>
         <h1 className="text-2xl font-bold text-slate-800 mb-2">العرض غير متوفر أو قيد المراجعة</h1>
-        <p className="text-slate-500 text-sm">تأكد من كتابة الرابط بشكل صحيح.</p>
+        <p className="text-slate-500 text-sm">تأكد من كتابة الرابط بشكل صحيح أو أن الاشتراك سارٍ.</p>
       </div>
     )
   }
@@ -121,13 +124,11 @@ export default function DynamicLandingPage() {
   const handleSubmit = (e) => {
     e.preventDefault()
 
-    // 1. تسجيل النقرة في قاعدة البيانات
     try {
       let cleanSlug = decodeURIComponent(rawSlug).toLowerCase().trim()
       supabase.rpc('increment_click', { p_slug: cleanSlug }).then(() => {})
     } catch (e) {}
 
-    // 2. إرسال أحداث التتبع لكل البكسلات المفعلة
     if (typeof window !== 'undefined') {
       if (window.fbq && pageData.meta_pixel_id) {
         window.fbq('track', 'Lead', { content_name: pageData.headline, value: rawPrice * quantity, currency: 'EGP' })
@@ -140,7 +141,6 @@ export default function DynamicLandingPage() {
       }
     }
 
-    // 3. تجهيز رسالة الواتساب والتحويل
     let messageText = ''
     if (pageData.template_type === 'product') {
       messageText = `🔥 *طلب شراء جديد (عرض خاص)*\n` +
@@ -168,14 +168,14 @@ export default function DynamicLandingPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-24">
-      {/* Meta Pixel */}
       {pageData.meta_pixel_id && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
             n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
             n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window, document,'script',
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
             fbq('init', '${pageData.meta_pixel_id}');
             fbq('track', 'PageView');
@@ -183,7 +183,6 @@ export default function DynamicLandingPage() {
         </Script>
       )}
 
-      {/* TikTok Pixel */}
       {pageData.tiktok_pixel_id && (
         <Script id="tiktok-pixel" strategy="afterInteractive">
           {`
@@ -196,7 +195,6 @@ export default function DynamicLandingPage() {
         </Script>
       )}
 
-      {/* Snapchat Pixel */}
       {pageData.snapchat_pixel_id && (
         <Script id="snapchat-pixel" strategy="afterInteractive">
           {`
@@ -212,7 +210,6 @@ export default function DynamicLandingPage() {
         </Script>
       )}
 
-      {/* شريط العداد التنازلي */}
       <div className="bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs sm:text-sm font-bold py-2 px-4 text-center sticky top-0 z-40 shadow flex items-center justify-center gap-2">
         <span>⚡ عرض حصري ولفترة محدودة - ينتهي خلال:</span>
         <span className="bg-black/30 px-2 py-0.5 rounded dir-ltr font-mono">
@@ -221,7 +218,6 @@ export default function DynamicLandingPage() {
       </div>
 
       <div className="max-w-xl mx-auto bg-white shadow-xl min-h-screen">
-        {/* الصورة الرئيسية ومعرض الصور */}
         {selectedImage && (
           <div className="space-y-2 p-3 bg-slate-50">
             <div className="relative w-full aspect-square bg-slate-200 rounded-2xl overflow-hidden shadow-sm">
@@ -235,7 +231,6 @@ export default function DynamicLandingPage() {
               </span>
             </div>
 
-            {/* مصغرات معرض الصور */}
             {allImages.length > 1 && (
               <div className="flex gap-2 overflow-x-auto py-1">
                 {allImages.map((img, idx) => (
@@ -282,7 +277,6 @@ export default function DynamicLandingPage() {
             </div>
           </div>
 
-          {/* شريط المخزون */}
           <div className="space-y-1.5">
             <div className="flex justify-between text-xs font-bold">
               <span className="text-red-600">🔥 متبقي 6 قطع/مقاعد فقط بالسعر المخفض</span>
@@ -293,7 +287,6 @@ export default function DynamicLandingPage() {
             </div>
           </div>
 
-          {/* شارات الثقة */}
           <div className="grid grid-cols-3 gap-2 text-center text-xs font-bold text-slate-700">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex flex-col items-center gap-1">
               <span className="text-lg">🚚</span>
@@ -318,7 +311,6 @@ export default function DynamicLandingPage() {
             </div>
           )}
 
-          {/* نموذج الطلب */}
           <div id="order-form" className="bg-emerald-50/60 p-5 rounded-3xl border-2 border-emerald-500/20">
             <div className="text-center mb-4">
               <h2 className="text-lg font-extrabold text-slate-900">
@@ -399,7 +391,6 @@ export default function DynamicLandingPage() {
         </div>
       </div>
 
-      {/* الزر العائم السفلي */}
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/95 backdrop-blur border-t border-slate-200 z-50 flex items-center justify-between gap-4 max-w-xl mx-auto">
         <div>
           <span className="block text-[11px] text-slate-400 line-through">{originalPrice} ج.م</span>
@@ -417,4 +408,5 @@ export default function DynamicLandingPage() {
       </div>
     </div>
   )
-}
+      }
+            
