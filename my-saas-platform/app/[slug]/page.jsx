@@ -15,10 +15,15 @@ export default function DynamicLandingPage({ params }) {
 
   useEffect(() => {
     async function fetchPage() {
+      if (!slug) return
+      
+      // تنظيف الرابط وتحويله لأحرف صغيرة
+      const cleanSlug = decodeURIComponent(slug).toLowerCase().trim()
+
       const { data, error } = await supabase
         .from('landing_pages')
         .select('*')
-        .eq('slug', params.slug)
+        .ilike('slug', cleanSlug)
         .eq('is_published', true)
         .single()
 
@@ -26,7 +31,8 @@ export default function DynamicLandingPage({ params }) {
       setLoading(false)
     }
     fetchPage()
-  }, [params.slug])
+  }, [slug])
+
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>
