@@ -8,6 +8,7 @@ export default function Dashboard() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [origin, setOrigin] = useState('')
   const router = useRouter()
 
   const [formData, setFormData] = useState({
@@ -23,6 +24,10 @@ export default function Dashboard() {
   })
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setOrigin(window.location.origin)
+    }
+
     async function loadData() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
@@ -31,7 +36,6 @@ export default function Dashboard() {
       }
       setUser(session.user)
 
-      // جلب حالة تفعيل الاشتراك
       const { data: prof } = await supabase
         .from('profiles')
         .select('*')
@@ -39,7 +43,6 @@ export default function Dashboard() {
         .single()
       setProfile(prof)
 
-      // جلب صفحة الهبوط الحالية إن وجدت
       const { data: page } = await supabase
         .from('landing_pages')
         .select('*')
@@ -98,7 +101,6 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* تنبيه حالة الاشتراك */}
       {!profile?.is_active && (
         <div className="bg-amber-50 border-r-4 border-amber-500 p-4 rounded-xl mb-6 text-amber-900 text-sm">
           ⚠️ <strong>تنبيه:</strong> حسابك في وضع المعاينة (غير مفعّل رسمياً). يمكنك تجربة وحفظ الإعدادات، ولتفعيل الرابط للعامة يرجى التواصل مع الإدارة.
@@ -114,7 +116,7 @@ export default function Dashboard() {
             rel="noreferrer"
             className="text-emerald-700 font-bold hover:underline dir-ltr text-sm"
           >
-            {window.location.origin}/{formData.slug}
+            {origin ? `${origin}/${formData.slug}` : `/${formData.slug}`}
           </a>
         </div>
       )}
@@ -195,7 +197,6 @@ export default function Dashboard() {
           ></textarea>
         </div>
 
-        {/* إعدادات إضافية لقالب المنتجات */}
         {formData.template_type === 'product' && (
           <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-200">
             <h3 className="font-bold text-slate-800 text-sm">بيانات المنتج المتجر:</h3>
