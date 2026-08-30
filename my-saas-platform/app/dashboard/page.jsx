@@ -43,7 +43,7 @@ export default function Dashboard() {
     instapay_id: 'mustafa.nbe015@instapay',
     instapay_phone: '01501665571',
     vodafone_cash: '01501665571',
-    support_whatsapp: '201501665571',
+    support_whatsapp: '201005825888',
     monthly_price: '99 ج.م (3 صفحات)',
     yearly_price: '799 ج.م (10 صفحات)',
   }
