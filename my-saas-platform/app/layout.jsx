@@ -1,37 +1,27 @@
+import Script from 'next/script'
 import './globals.css'
 
 export const metadata = {
   title: 'Aipudio-LP | أسرع نظام لروابط البيع والحجز المباشر',
-  description: 'أنشئ رابطاً فائق السرعة لبيع منتجك أو استقبال حجوزات عيادتك ومجموعاتك التعليمية مباشرة على واتساب في 60 ثانية.',
-  openGraph: {
-    title: 'Aipudio-LP | أسرع نظام لروابط البيع والحجز المباشر',
-    description: 'أنشئ رابطاً فائق السرعة لبيع منتجك أو استقبال حجوزات عيادتك ومجموعاتك التعليمية مباشرة على واتساب في 60 ثانية.',
-    url: 'https://my-saas-platform-iota.vercel.app',
-    siteName: 'Aipudio-LP',
-    images: [
-      {
-        url: '/cover.png',
-        width: 1200,
-        height: 630,
-        alt: 'Aipudio-LP Cover',
-      },
-    ],
-    locale: 'ar_EG',
-    type: 'website',
-  },
-  icons: {
-    icon: '/logo.png',
-    apple: '/logo.png',
-  },
+  description: 'حوّل زوار إعلاناتك إلى مبيعات وحجوزات مؤكدة على الواتساب في 60 ثانية بدون أي خبرة برمجية.',
 }
 
 export default function RootLayout({ children }) {
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link rel="icon" href="/logo.png" />
+        {/* كود تتبع Microsoft Clarity لتحليل الزيارات والتسجيلات بالفيديو */}
+        <Script id="microsoft-clarity" strategy="afterInteractive">
+          {`
+            (function(c,l,a,r,i,t,y){
+                c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+            })(window, document, "clarity", "script", "yare77tsej");
+          `}
+        </Script>
       </head>
-      <body className="antialiased bg-slate-50 text-slate-900 font-sans">
+      <body className="antialiased">
         {children}
       </body>
     </html>
