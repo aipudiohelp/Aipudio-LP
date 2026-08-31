@@ -4,6 +4,50 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// مكتبة القوالب التسويقية الذكية
+const TEMPLATES_LIST = [
+  {
+    id: 'product_flash',
+    name: 'عرض خاطف / دروب شيبينغ',
+    icon: '🔥',
+    badge: 'الأعلى تحويلاً ⚡',
+    badgeColor: 'bg-red-500/10 text-red-600 border-red-200',
+    desc: 'تركيز كامل على عروض الباقات (1+1)، عداد تنازلي، وإتمام الشراء الفوري.',
+  },
+  {
+    id: 'product_beauty',
+    name: 'تجميل وعناية بالبشرة',
+    icon: '🌸',
+    badge: 'براندات ومستحضرات',
+    badgeColor: 'bg-pink-500/10 text-pink-600 border-pink-200',
+    desc: 'إبراز المكونات الطبيعية، شارات الأمان الطبي، ونتائج الاستخدام قبل/بعد.',
+  },
+  {
+    id: 'product_gadgets',
+    name: 'أجهزة وأدوات ذكية',
+    icon: '⚡',
+    badge: 'إلكترونيات ومطبخ',
+    badgeColor: 'bg-blue-500/10 text-blue-600 border-blue-200',
+    desc: 'عرض المواصفات الفنية، طريقة التشغيل، وسرعة الشحن للمحافظات.',
+  },
+  {
+    id: 'product_fashion',
+    name: 'أزياء وملابس وإكسسوارات',
+    icon: '👗',
+    badge: 'فاشون وموضة',
+    badgeColor: 'bg-purple-500/10 text-purple-600 border-purple-200',
+    desc: 'معرض صور واسع، توضيح المقاسات، وشارات المعاينة وتجربة المقاس قبل الاستلام.',
+  },
+  {
+    id: 'booking',
+    name: 'حجز مواعيد واستشارات',
+    icon: '🎯',
+    badge: 'عيادات ومراكز',
+    badgeColor: 'bg-emerald-500/10 text-emerald-600 border-emerald-200',
+    desc: 'تحديد الفروع، الأوقات المتاحة، وتأكيد الحجز المباشر على الواتساب.',
+  },
+]
+
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -21,7 +65,7 @@ export default function Dashboard() {
 
   const defaultForm = {
     slug: '',
-    template_type: 'product',
+    template_type: 'product_flash',
     business_name: '',
     headline: '',
     description: '',
@@ -106,7 +150,7 @@ export default function Dashboard() {
     setEditingPageId(page.id)
     setFormData({
       slug: page.slug || '',
-      template_type: page.template_type || 'product',
+      template_type: page.template_type || 'product_flash',
       business_name: page.business_name || '',
       headline: page.headline || '',
       description: page.description || '',
@@ -235,6 +279,8 @@ export default function Dashboard() {
   const maxPages = profile?.max_pages || 1
   const usedPages = userPages.length
   const remainingPages = Math.max(0, maxPages - usedPages)
+
+  const isProductTemplate = formData.template_type !== 'booking'
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-500 selection:text-white py-6 px-4 sm:px-8 pb-28">
@@ -415,7 +461,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* قائمة الصفحات المنشورة */}
+                {/* قائمة الصفحات المنشورة */}
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
@@ -433,51 +479,55 @@ export default function Dashboard() {
             <p className="text-center text-xs text-slate-400 p-6 border border-dashed rounded-2xl">لا توجد لديك صفحات منشورة بعد.</p>
           ) : (
             <div className="space-y-3">
-              {userPages.map((page) => (
-                <div
-                  key={page.id}
-                  className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
-                    editingPageId === page.id ? 'border-purple-500 bg-purple-50/40 ring-2 ring-purple-500/20' : 'bg-slate-50/80 border-slate-200/80'
-                  }`}
-                >
-                  <div className="space-y-1.5">
+              {userPages.map((page) => {
+                const currentTpl = TEMPLATES_LIST.find(t => t.id === page.template_type) || TEMPLATES_LIST[0]
+                return (
+                  <div
+                    key={page.id}
+                    className={`p-4 rounded-2xl border transition flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 ${
+                      editingPageId === page.id ? 'border-purple-500 bg-purple-50/40 ring-2 ring-purple-500/20' : 'bg-slate-50/80 border-slate-200/80'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-extrabold text-sm text-slate-900">{page.business_name || page.slug}</span>
+                        <span className="text-[10px] bg-white border px-2 py-0.5 rounded-md font-bold text-slate-700 flex items-center gap-1">
+                          <span>{currentTpl.icon}</span>
+                          <span>{currentTpl.name}</span>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs">
+                        <a href={`/${page.slug}`} target="_blank" rel="noreferrer" className="text-purple-700 font-mono font-bold hover:underline dir-ltr">
+                          /{page.slug} ↗
+                        </a>
+                        <button type="button" onClick={() => copyPageLink(page.slug)} className="text-[10px] bg-white border px-2 py-0.5 rounded-md font-bold">
+                          {copiedSlug === page.slug ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
+                        <span>👁️ الزيارات: <strong>{page.views_count || 0}</strong></span>
+                        <span>💬 الطلبات: <strong className="text-emerald-600">{page.clicks_count || 0}</strong></span>
+                      </div>
+                    </div>
                     <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-sm text-slate-900">{page.business_name || page.slug}</span>
-                      <span className="text-[10px] bg-white border px-2 py-0.5 rounded-md font-bold text-slate-600">
-                        {page.template_type === 'product' ? '📦 متجر / منتج' : '🎯 حجز موعد'}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs">
-                      <a href={`/${page.slug}`} target="_blank" rel="noreferrer" className="text-purple-700 font-mono font-bold hover:underline dir-ltr">
-                        /{page.slug} ↗
-                      </a>
-                      <button type="button" onClick={() => copyPageLink(page.slug)} className="text-[10px] bg-white border px-2 py-0.5 rounded-md font-bold">
-                        {copiedSlug === page.slug ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
-                      </button>
-                    </div>
-                    <div className="flex items-center gap-3 text-[11px] text-slate-500 pt-1">
-                      <span>👁️ الزيارات: <strong>{page.views_count || 0}</strong></span>
-                      <span>💬 الطلبات: <strong className="text-emerald-600">{page.clicks_count || 0}</strong></span>
+                      <button type="button" onClick={() => startEdit(page)} className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition">✏️ تعديل</button>
+                      <button type="button" onClick={() => deletePage(page.id, page.business_name || page.slug)} className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-100 transition">🗑️ حذف</button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => startEdit(page)} className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition">✏️ تعديل</button>
-                    <button type="button" onClick={() => deletePage(page.id, page.business_name || page.slug)} className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-100 transition">🗑️ حذف</button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
 
         {/* نموذج إنشاء وتعديل الصفحة مع المنظومة المطورة */}
-        <div id="form-section" className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-5">
+        <div id="form-section" className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
                 {editingPageId ? '✏️ تعديل بيانات الصفحة المحددة' : '✨ إنشاء ونشر صفحة هبوط جديدة'}
               </h2>
-              <p className="text-[11px] text-slate-400">إدارة متقدمة للأسعار، الخصومات، والشحن</p>
+              <p className="text-[11px] text-slate-400">اختر القالب الأنسب لنشاطك، وحدد الأسعار والشحن لنشر الرابط فوراً</p>
             </div>
             {editingPageId && (
               <button type="button" onClick={resetToNew} className="text-xs text-purple-700 hover:underline font-bold">
@@ -486,62 +536,91 @@ export default function Dashboard() {
             )}
           </div>
 
-          <form onSubmit={handleSave} className="space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">نوع القالب</label>
-                <select
-                  value={formData.template_type}
-                  onChange={e => setFormData({ ...formData, template_type: e.target.value })}
-                  className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
-                >
-                  <option value="product">📦 بيع منتج مباشر (متاجر إلكترونية ودروب شيبينغ)</option>
-                  <option value="booking">🎯 حجز موعد / تجميع بيانات (عيادات، مدرسين، صالونات)</option>
-                </select>
+          <form onSubmit={handleSave} className="space-y-5">
+            
+            {/* 1. محدد القوالب البصري التفاعلي */}
+            <div className="space-y-2.5">
+              <label className="font-extrabold text-xs text-slate-900 block">
+                🎨 اختر نوع وهوية قالب صفحة الهبوط:
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {TEMPLATES_LIST.map((tpl) => {
+                  const isSelected = formData.template_type === tpl.id
+                  return (
+                    <div
+                      key={tpl.id}
+                      onClick={() => setFormData({ ...formData, template_type: tpl.id })}
+                      className={`p-3.5 rounded-2xl border-2 cursor-pointer transition relative flex flex-col justify-between space-y-2 text-right ${
+                        isSelected
+                          ? 'border-purple-600 bg-purple-50/70 shadow-md ring-2 ring-purple-600/20'
+                          : 'border-slate-200 bg-slate-50/50 hover:bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-2xl">{tpl.icon}</span>
+                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-black border ${tpl.badgeColor}`}>
+                          {tpl.badge}
+                        </span>
+                      </div>
+                      <div>
+                        <strong className="text-xs font-black text-slate-900 block">{tpl.name}</strong>
+                        <p className="text-[10px] text-slate-500 leading-tight mt-0.5">{tpl.desc}</p>
+                      </div>
+                      <div className="flex items-center justify-between pt-1 border-t border-slate-200/60 text-[10px] font-bold">
+                        <span className={isSelected ? 'text-purple-700' : 'text-slate-400'}>
+                          {isSelected ? '● القالب المختار' : 'اختيار هذا القالب'}
+                        </span>
+                        {isSelected && <span className="text-purple-600">✓</span>}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
+            </div>
 
+            {/* 2. اسم الرابط والنشاط */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs pt-1">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">اسم الرابط بالإنجليزية (Slug)</label>
                 <input
                   type="text"
                   required
-                  placeholder="مثال: watch-pro أو dr-walaa"
+                  placeholder="مثال: glow-cream أو watch-ultra"
                   value={formData.slug}
                   onChange={e => setFormData({ ...formData, slug: e.target.value })}
                   className="w-full p-3 border border-slate-200 rounded-2xl dir-ltr outline-none focus:border-purple-500 bg-white font-mono"
                 />
               </div>
-            </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="font-bold text-slate-700 block mb-1">اسم النشاط / المتجر</label>
                 <input
                   type="text"
                   required
+                  placeholder="مثال: براند نيتشر شادو"
                   value={formData.business_name}
                   onChange={e => setFormData({ ...formData, business_name: e.target.value })}
                   className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
                 />
               </div>
-
-              <div>
-                <label className="font-bold text-slate-700 block mb-1">رقم الواتساب مع كود الدولة</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="2010xxxxxxxx"
-                  value={formData.whatsapp_number}
-                  onChange={e => setFormData({ ...formData, whatsapp_number: e.target.value })}
-                  className="w-full p-3 border border-slate-200 rounded-2xl dir-ltr outline-none focus:border-purple-500 bg-white font-mono"
-                />
-              </div>
             </div>
 
-            {/* إعدادات الأسعار والكوبونات والشحن لقالب المتاجر */}
-            {formData.template_type === 'product' && (
-              <div className="space-y-4 pt-2">
-                {/* 1. الأسعار الأساسية */}
+            <div className="text-xs">
+              <label className="font-bold text-slate-700 block mb-1">رقم الواتساب مع كود الدولة (لاستقبال الطلبات)</label>
+              <input
+                type="text"
+                required
+                placeholder="2010xxxxxxxx"
+                value={formData.whatsapp_number}
+                onChange={e => setFormData({ ...formData, whatsapp_number: e.target.value })}
+                className="w-full p-3 border border-slate-200 rounded-2xl dir-ltr outline-none focus:border-purple-500 bg-white font-mono"
+              />
+            </div>
+
+            {/* 3. إعدادات الأسعار والكوبونات والشحن لقوالب المتاجر والمنتجات */}
+            {isProductTemplate && (
+              <div className="space-y-4 pt-1">
+                {/* الأسعار الأساسية */}
                 <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-3 text-xs">
                   <h3 className="font-extrabold text-purple-950 flex items-center gap-1.5">
                     <span>💵</span> إعدادات التسعير والعرض
@@ -574,7 +653,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* 2. منظومة الكوبونات */}
+                {/* منظومة الكوبونات */}
                 <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3 text-xs">
                   <h3 className="font-extrabold text-indigo-950 flex items-center gap-1.5">
                     <span>🎟️</span> كود الخصم والكوبونات (اختياري)
@@ -616,7 +695,7 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* 3. منظومة الشحن والمحافظات */}
+                {/* منظومة الشحن والمحافظات */}
                 <div className="p-4 bg-cyan-50/50 rounded-2xl border border-cyan-100 space-y-3 text-xs">
                   <h3 className="font-extrabold text-cyan-950 flex items-center gap-1.5">
                     <span>🚚</span> إعدادات مصاريف الشحن والتوصيل
@@ -691,7 +770,7 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* إعدادات قالب الحجز */}
+            {/* 4. إعدادات خاصة بقالب الحجوزات */}
             {formData.template_type === 'booking' && (
               <div className="p-4 bg-purple-50/60 rounded-2xl space-y-3 border border-purple-100 text-xs">
                 <h3 className="font-bold text-purple-950">🗓️ إعدادات الفروع والأوقات المتاحة للحجز:</h3>
@@ -718,11 +797,13 @@ export default function Dashboard() {
               </div>
             )}
 
+            {/* 5. نصوص العرض والوصف */}
             <div className="text-xs">
-              <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي الجذاب</label>
+              <label className="font-bold text-slate-700 block mb-1">العنوان الرئيسي الجذاب لصفحتك</label>
               <input
                 type="text"
                 required
+                placeholder="مثال: احصلي على بشرة نضرة وخالية من العيوب بمكونات طبيعية 100%"
                 value={formData.headline}
                 onChange={e => setFormData({ ...formData, headline: e.target.value })}
                 className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
@@ -730,18 +811,20 @@ export default function Dashboard() {
             </div>
 
             <div className="text-xs">
-              <label className="font-bold text-slate-700 block mb-1">الوصف وتفاصيل العرض</label>
+              <label className="font-bold text-slate-700 block mb-1">الوصف وتفاصيل المميزات والفوائد</label>
               <textarea
-                rows="3"
+                rows="4"
+                placeholder="اكتب هنا نقاط القوة ومميزات المنتج بشكل نقاط منظمة لسهولة القراءة..."
                 value={formData.description}
-                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
               ></textarea>
             </div>
 
+            {/* 6. رفع الصور والمعرض */}
             <div className="p-4 bg-slate-50 rounded-2xl space-y-3 border border-slate-200/70 text-xs">
               <div>
-                <label className="font-bold text-slate-700 block mb-1">الصورة الرئيسية</label>
+                <label className="font-bold text-slate-700 block mb-1">الصورة الرئيسية للمنتج / العرض</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -754,7 +837,7 @@ export default function Dashboard() {
               </div>
 
               <div className="pt-2 border-t border-slate-200">
-                <label className="font-bold text-slate-700 block mb-1">معرض الصور (حتى 4 صور إضافية)</label>
+                <label className="font-bold text-slate-700 block mb-1">معرض الصور الإضافية (حتى 4 صور إضافية)</label>
                 {(formData.gallery_images || []).length < 4 && (
                   <input
                     type="file"
@@ -784,6 +867,7 @@ export default function Dashboard() {
               </div>
             </div>
 
+            {/* 7. بكسلات التتبع الإعلاني */}
             <div className="p-4 bg-slate-50 rounded-2xl space-y-2 border border-slate-200/70 text-xs">
               <label className="font-bold text-slate-700 block">🎯 أكواد التتبع والبكسلات الإعلانية (Pixels)</label>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -836,4 +920,5 @@ export default function Dashboard() {
       </div>
     </div>
   )
-}
+                    }
+                
