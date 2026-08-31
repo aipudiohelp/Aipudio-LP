@@ -32,13 +32,72 @@ const GOVERNORATES = [
   { name: 'الوادي الجديد', zone: 'remote' },
 ]
 
+// خصائص وشارات كل قالب تسويقي
+const THEMES = {
+  product_flash: {
+    bannerGrad: 'from-rose-600 via-red-600 to-amber-600',
+    primaryBtn: 'from-emerald-600 via-teal-600 to-emerald-700',
+    tag: '⚡ عرض حصري لفترة محدودة!',
+    badges: [
+      { icon: '💵', text: 'الدفع عند الاستلام بعد الفحص' },
+      { icon: '📦', text: 'معاينة المنتج وفتحه قبل الدفع' },
+      { icon: '🚚', text: 'شحن سريع لجميع المحافظات' },
+      { icon: '🔄', text: 'ضمان استبدال واسترجاع 14 يوم' },
+    ],
+  },
+  product_beauty: {
+    bannerGrad: 'from-pink-600 via-rose-500 to-purple-600',
+    primaryBtn: 'from-pink-600 via-rose-600 to-purple-600',
+    tag: '🌸 منتج أصلي ومصرح طبيعياً 100%',
+    badges: [
+      { icon: '🌿', text: 'مكونات طبيعية آمنة للبشرة والشعر' },
+      { icon: '🩺', text: 'مختبر ومعتمد من أطباء العناية' },
+      { icon: '📦', text: 'معاينة المنتج والتأكد قبل الاستلام' },
+      { icon: '💵', text: 'الدفع عند الاستلام مع متابعة مجانية' },
+    ],
+  },
+  product_gadgets: {
+    bannerGrad: 'from-slate-900 via-blue-900 to-indigo-900',
+    primaryBtn: 'from-blue-600 via-cyan-600 to-indigo-600',
+    tag: '⚡ ضمان الجودة وتجربة التشغيل',
+    badges: [
+      { icon: '🛡️', text: 'ضمان استبدال فوري ضد عيوب الصناعة' },
+      { icon: '🔌', text: 'تجربة وتشغيل المنتج قبل الاستلام' },
+      { icon: '🚚', text: 'توصيل آمن وسريع لباب المنزل' },
+      { icon: '💵', text: 'الدفع عند الاستلام بعد المعاينة' },
+    ],
+  },
+  product_fashion: {
+    bannerGrad: 'from-purple-700 via-indigo-700 to-slate-900',
+    primaryBtn: 'from-purple-600 via-indigo-600 to-pink-600',
+    tag: '👗 خامات عالية الجودة ومعاينة مجانية',
+    badges: [
+      { icon: '👔', text: 'معاينة وتجربة المقاس قبل الاستلام' },
+      { icon: '🔄', text: 'تبديل فوري للمقاسات مجاناً' },
+      { icon: '✨', text: 'خامات أصلية وتفصيل فائق الجودة' },
+      { icon: '💵', text: 'الدفع عند الاستلام بعد الرضا التام' },
+    ],
+  },
+  booking: {
+    bannerGrad: 'from-emerald-700 via-teal-700 to-slate-900',
+    primaryBtn: 'from-emerald-600 to-teal-600',
+    tag: '🎯 حجز موعد مؤكد وفوري',
+    badges: [
+      { icon: '⚡', text: 'تأكيد فوري للحجز على الواتساب' },
+      { icon: '👨‍⚕️', text: 'استشارة متخصصة مع خبراء' },
+      { icon: '📍', text: 'فروع ومواعيد مرنة طوال الأسبوع' },
+      { icon: '🔒', text: 'سرية تامة لبيانات العميل' },
+    ],
+  },
+}
+
 export default function LandingView({ params }) {
   const [page, setPage] = useState(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [activeImage, setActiveImage] = useState('')
 
-  // اختيار الكمية والباقة
+  // اختيار الكمية
   const [quantity, setQuantity] = useState(1)
 
   // مدخلات العميل
@@ -54,7 +113,7 @@ export default function LandingView({ params }) {
   const [appliedCoupon, setAppliedCoupon] = useState(null)
   const [couponError, setCouponError] = useState('')
 
-  // مؤقت العد التنازلي التفاعلي (ساعات : دقائق : ثواني)
+  // مؤقت العداد التنازلي
   const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 45, seconds: 30 })
 
   useEffect(() => {
@@ -63,7 +122,7 @@ export default function LandingView({ params }) {
         if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 }
         if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 }
         if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 }
-        return { hours: 2, minutes: 30, seconds: 0 } // إعادة ضبط تلقائي
+        return { hours: 2, minutes: 30, seconds: 0 }
       })
     }, 1000)
     return () => clearInterval(timer)
@@ -91,7 +150,6 @@ export default function LandingView({ params }) {
       if (data.branches) setSelectedBranch(data.branches.split(',')[0].trim())
       if (data.available_times) setSelectedTime(data.available_times.split(',')[0].trim())
 
-      // زيادة عداد الزيارات
       await supabase
         .from('landing_pages')
         .update({ views_count: (data.views_count || 0) + 1 })
@@ -102,9 +160,13 @@ export default function LandingView({ params }) {
     loadPage()
   }, [params])
 
+  // التحقق هل الصفحة منتج أم حجز
+  const isBooking = page?.template_type === 'booking'
+  const currentTheme = THEMES[page?.template_type] || THEMES.product_flash
+
   // حساب مصاريف الشحن
   const getShippingCost = () => {
-    if (!page || page.shipping_type === 'free' || quantity >= 2) return 0 // شحن مجاني عند طلب قطعتين أو أكثر
+    if (!page || page.shipping_type === 'free' || quantity >= 2) return 0
     if (page.shipping_type === 'flat') return Number(page.shipping_flat_rate) || 0
 
     const currentGov = GOVERNORATES.find(g => g.name === selectedGov)
@@ -144,31 +206,25 @@ export default function LandingView({ params }) {
     }
   }
 
-  // حساب الإجمالي النهائي
+  // حساب الفاتورة
   const singleUnitPrice = Number(page?.product_price) || 0
   const rawSubtotal = singleUnitPrice * quantity
-  // خصم إضافي تلقائي 50 ج عند طلب 3 قطع
-  const bundleBonusDiscount = quantity === 3 ? 50 : 0 
+  const bundleBonusDiscount = quantity === 3 ? 50 : 0
   const couponDiscount = appliedCoupon ? appliedCoupon.amount : 0
   const totalProductPrice = Math.max(0, rawSubtotal - bundleBonusDiscount - couponDiscount)
   const shippingCost = getShippingCost()
   const grandTotal = totalProductPrice + shippingCost
 
-  // نسبة التوفير المحسوبة
   const originalPriceNum = Number(page?.original_price) || 0
   const savingsAmount = originalPriceNum > singleUnitPrice 
     ? ((originalPriceNum - singleUnitPrice) * quantity) + bundleBonusDiscount + couponDiscount 
     : bundleBonusDiscount + couponDiscount
 
-  // التمرير السريع لنموذج الطلب
   const scrollToForm = () => {
-    const formElement = document.getElementById('order-form')
-    if (formElement) {
-      formElement.scrollIntoView({ behavior: 'smooth' })
-    }
+    document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  // إرسال الطلب إلى واتساب
+  // إرسال الطلب لواتساب
   const handleSubmit = async (e) => {
     e.preventDefault()
 
@@ -184,14 +240,14 @@ export default function LandingView({ params }) {
     }
 
     let message = ''
-    if (page.template_type === 'product') {
+    if (!isBooking) {
       message = `🛍️ *طلب شراء مؤكد من الرابط*\n` +
         `----------------------------------\n` +
         `📦 *المنتج:* ${page.headline}\n` +
-        `🔢 *الكمية المطلوبة:* ${quantity} ${quantity === 1 ? 'قطعة' : 'قطع'}\n` +
-        (page.original_price ? `💵 *السعر قبل الخصم:* ~${originalPriceNum * quantity} ج.م~\n` : '') +
+        `🔢 *الكمية:* ${quantity} ${quantity === 1 ? 'قطعة' : 'قطع'}\n` +
+        (originalPriceNum > 0 ? `💵 *السعر قبل الخصم:* ~${originalPriceNum * quantity} ج.م~\n` : '') +
         `🏷️ *سعر المنتجات:* ${totalProductPrice} ج.م\n` +
-        (appliedCoupon ? `🎟️ *الكوبون المطبق:* ${appliedCoupon.code} (خصم ${appliedCoupon.amount} ج.م)\n` : '') +
+        (appliedCoupon ? `🎟️ *كوبون الخصم:* ${appliedCoupon.code} (خصم ${appliedCoupon.amount} ج.م)\n` : '') +
         (shippingCost === 0 ? `🚚 *الشحن:* مجاني 🎁\n` : `📍 *المحافظة:* ${selectedGov}\n🚚 *الشحن:* ${shippingCost} ج.م\n`) +
         `----------------------------------\n` +
         `💰 *الإجمالي النهائي المطلوب:* *${grandTotal} ج.م*\n` +
@@ -206,7 +262,7 @@ export default function LandingView({ params }) {
         `----------------------------------\n` +
         `🏢 *الخدمة:* ${page.headline}\n` +
         `🏛️ *الفرع:* ${selectedBranch}\n` +
-        `⏰ *الموعد المفضل:* ${selectedTime}\n` +
+        `⏰ *الموعد:* ${selectedTime}\n` +
         `----------------------------------\n` +
         `👤 *الاسم:* ${customerName}\n` +
         `📱 *الهاتف:* ${customerPhone}\n` +
@@ -223,7 +279,7 @@ export default function LandingView({ params }) {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="flex items-center gap-3 bg-white p-6 rounded-3xl shadow-sm font-bold text-slate-700 text-sm border border-slate-200">
           <div className="w-5 h-5 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-          <span>جاري تجهيز أقوى عرض لمنتجك...</span>
+          <span>جاري تجهيز العرض...</span>
         </div>
       </div>
     )
@@ -245,7 +301,6 @@ export default function LandingView({ params }) {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-900 pb-28 font-sans selection:bg-purple-500 selection:text-white">
-      {/* تضمين بكسلات التتبع */}
       {page.meta_pixel_id && (
         <Script id="meta-pixel" strategy="afterInteractive">
           {`
@@ -263,14 +318,14 @@ export default function LandingView({ params }) {
         </Script>
       )}
 
-      {/* 1. شريط الإعلان والعد التنازلي التفاعلي بالأعلى */}
-      <div className="bg-gradient-to-r from-rose-600 via-red-600 to-amber-600 text-white py-2 px-3 sticky top-0 z-30 shadow-md">
+      {/* 1. شريط العد التنازلي التفاعلي الملون */}
+      <div className={`bg-gradient-to-r ${currentTheme.bannerGrad} text-white py-2 px-3 sticky top-0 z-30 shadow-md`}>
         <div className="max-w-md mx-auto flex items-center justify-between text-[11px] sm:text-xs font-black">
           <div className="flex items-center gap-1.5">
             <span className="animate-bounce">⚡</span>
-            <span>عرض حصري لفترة محدودة!</span>
+            <span>{currentTheme.tag}</span>
           </div>
-          <div className="flex items-center gap-1 font-mono dir-ltr bg-black/30 px-2 py-0.5 rounded-lg border border-white/20">
+          <div className="flex items-center gap-1 font-mono dir-ltr bg-black/35 px-2 py-0.5 rounded-lg border border-white/20">
             <span>{String(timeLeft.hours).padStart(2, '0')}</span>:
             <span>{String(timeLeft.minutes).padStart(2, '0')}</span>:
             <span className="text-amber-300">{String(timeLeft.seconds).padStart(2, '0')}</span>
@@ -280,7 +335,7 @@ export default function LandingView({ params }) {
 
       <div className="max-w-md mx-auto bg-white sm:rounded-3xl sm:mt-3 shadow-xl border-x sm:border border-slate-200/80 overflow-hidden">
         
-        {/* شريط المتجر أو النشاط */}
+        {/* شريط المتجر أو البراند */}
         <div className="p-3.5 px-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/90">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 text-white flex items-center justify-center font-black text-xs shadow-xs">
@@ -296,18 +351,18 @@ export default function LandingView({ params }) {
           </div>
           <button
             onClick={scrollToForm}
-            className="text-[11px] bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-xl font-bold transition shadow-xs"
+            className="text-[11px] bg-slate-900 hover:bg-slate-800 text-white px-3 py-1.5 rounded-xl font-bold transition shadow-xs"
           >
             اطلب الآن ⚡
           </button>
         </div>
 
-        {/* عرض الصور ومعرض الصور التفاعلي */}
+        {/* عرض الصور */}
         {activeImage && (
           <div className="p-3 pb-0 space-y-2">
             <div className="aspect-square w-full rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 shadow-inner relative group">
               <img src={activeImage} alt={page.headline} className="w-full h-full object-cover transition duration-300" />
-              {page.original_price && originalPriceNum > singleUnitPrice && (
+              {originalPriceNum > singleUnitPrice && (
                 <div className="absolute top-3 right-3 bg-red-600 text-white text-[11px] font-black px-2.5 py-1 rounded-xl shadow-lg border border-white/20">
                   خصم {Math.round(((originalPriceNum - singleUnitPrice) / originalPriceNum) * 100)}% 🔥
                 </div>
@@ -342,20 +397,20 @@ export default function LandingView({ params }) {
           </div>
         )}
 
-        {/* محتوى وتفاصيل العرض */}
+        {/* المحتوى والتفاصيل */}
         <div className="p-4 sm:p-5 space-y-4">
           
-          {/* العنوان والسعر المطور */}
           <div className="space-y-2">
             <h1 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">{page.headline}</h1>
             
-            {page.template_type === 'product' && (
+            {/* كارت السعر المطوّر للمنتجات */}
+            {!isBooking && (
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50/60 p-3.5 rounded-2xl border border-purple-100 flex items-center justify-between">
                 <div>
-                  <span className="text-[11px] text-slate-500 font-bold block">سعر العرض الخاص:</span>
+                  <span className="text-[11px] text-slate-500 font-bold block">سعر العرض الحالي:</span>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-black text-purple-700">{page.product_price} ج.م</span>
-                    {page.original_price && (
+                    {originalPriceNum > 0 && (
                       <span className="text-xs text-slate-400 line-through font-bold">{page.original_price} ج.م</span>
                     )}
                   </div>
@@ -369,7 +424,7 @@ export default function LandingView({ params }) {
             )}
           </div>
 
-          {/* مؤشر نفاد الكمية (Scarcity Trigger) */}
+          {/* مؤشر نفاد الكمية */}
           <div className="bg-amber-500/10 border border-amber-500/30 p-3 rounded-2xl space-y-1.5">
             <div className="flex justify-between text-[11px] font-bold text-amber-900">
               <span className="flex items-center gap-1">🔥 متبقي <strong>4 قطع فقط</strong> بالسعر المخفض</span>
@@ -380,13 +435,12 @@ export default function LandingView({ params }) {
             </div>
           </div>
 
-          {/* عروض الباقات والكميات (Quantity Tiers) لرفع قيمة السلة AOV */}
-          {page.template_type === 'product' && (
+          {/* باقات الكميات لرفع المبيعات (AOV) */}
+          {!isBooking && (
             <div className="space-y-2 pt-1">
               <span className="text-xs font-black text-slate-800 block">اختر العرض المناسب لك:</span>
               <div className="grid grid-cols-3 gap-2">
                 
-                {/* باقة 1 */}
                 <button
                   type="button"
                   onClick={() => setQuantity(1)}
@@ -399,7 +453,6 @@ export default function LandingView({ params }) {
                   <span className="text-[9px] text-slate-400 font-semibold">سعر قياسي</span>
                 </button>
 
-                {/* باقة 2 - الأكثر طلباً */}
                 <button
                   type="button"
                   onClick={() => setQuantity(2)}
@@ -415,7 +468,6 @@ export default function LandingView({ params }) {
                   <span className="text-[9px] text-emerald-600 font-black">شحن مجاني 🎁</span>
                 </button>
 
-                {/* باقة 3 - أكبر توفير */}
                 <button
                   type="button"
                   onClick={() => setQuantity(3)}
@@ -435,27 +487,17 @@ export default function LandingView({ params }) {
             </div>
           )}
 
-          {/* شارات الثقة والأمان (Trust Badges) */}
+          {/* شارات الثقة المخصصة حسب هوية القالب */}
           <div className="grid grid-cols-2 gap-2 pt-1 text-[10px] font-bold text-slate-600">
-            <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
-              <span className="text-base">💵</span>
-              <span>الدفع عند الاستلام بعد الفحص</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
-              <span className="text-base">📦</span>
-              <span>معاينة المنتج قبل الدفع</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
-              <span className="text-base">🚚</span>
-              <span>شحن سريع لجميع المحافظات</span>
-            </div>
-            <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
-              <span className="text-base">🔄</span>
-              <span>ضمان استبدال واسترجاع مجاني</span>
-            </div>
+            {currentTheme.badges.map((b, i) => (
+              <div key={i} className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center gap-2">
+                <span className="text-base">{b.icon}</span>
+                <span>{b.text}</span>
+              </div>
+            ))}
           </div>
 
-          {/* الوصف والفوائد الترويجية */}
+          {/* الوصف والمميزات */}
           {page.description && (
             <div className="space-y-1.5 pt-1">
               <span className="text-xs font-black text-slate-800 block">تفاصيل ومميزات العرض:</span>
@@ -465,7 +507,7 @@ export default function LandingView({ params }) {
             </div>
           )}
 
-          {/* نموذج إدخال بيانات الشراء الفوري */}
+          {/* نموذج إدخال البيانات المكتمل (مع العنوان والمحافظة) */}
           <form id="order-form" onSubmit={handleSubmit} className="space-y-3 pt-2">
             <div className="text-center pb-1">
               <h3 className="text-sm font-black text-slate-900">أدخل بياناتك لتأكيد الطلب ✍️</h3>
@@ -496,8 +538,8 @@ export default function LandingView({ params }) {
               />
             </div>
 
-            {/* تفاصيل الشحن والعنوان للمنتجات */}
-            {page.template_type === 'product' && (
+            {/* الحقول الخاصة بالمنتجات والشحن */}
+            {!isBooking && (
               <>
                 {page.shipping_type === 'zones' && quantity === 1 && (
                   <div className="space-y-1">
@@ -526,7 +568,7 @@ export default function LandingView({ params }) {
                   />
                 </div>
 
-                {/* تطبيق الكوبون */}
+                {/* كود الكوبون */}
                 {page.coupon_code && (
                   <div className="pt-1 space-y-1.5">
                     <div className="flex gap-2">
@@ -554,7 +596,7 @@ export default function LandingView({ params }) {
                   </div>
                 )}
 
-                {/* ملخص الفاتورة والحساب النهائي */}
+                {/* ملخص الحساب النهائي */}
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-700">
                   <div className="flex justify-between">
                     <span>المنتجات ({quantity} قطعة):</span>
@@ -584,8 +626,8 @@ export default function LandingView({ params }) {
               </>
             )}
 
-            {/* حقول خاصة بقالب الحجوزات */}
-            {page.template_type === 'booking' && (
+            {/* الحقول الخاصة بقالب الحجوزات */}
+            {isBooking && (
               <>
                 {page.branches && (
                   <div className="space-y-1">
@@ -630,16 +672,16 @@ export default function LandingView({ params }) {
               </>
             )}
 
-            {/* زر تأكيد الطلب المباشر */}
+            {/* زر الطلب */}
             <button
               type="submit"
-              className="w-full py-4 bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-600 hover:opacity-95 text-white font-black rounded-2xl shadow-lg shadow-emerald-600/30 transition transform active:scale-95 text-sm flex items-center justify-center gap-2"
+              className={`w-full py-4 bg-gradient-to-r ${currentTheme.primaryBtn} hover:opacity-95 text-white font-black rounded-2xl shadow-lg transition transform active:scale-95 text-sm flex items-center justify-center gap-2`}
             >
-              <span>{page.template_type === 'product' ? '🛍️ اضغط هنا لتأكيد طلبك عبر الواتساب' : '📅 اضغط هنا لتأكيد حجزك عبر الواتساب'}</span>
+              <span>{!isBooking ? '🛍️ اضغط هنا لتأكيد طلبك عبر الواتساب' : '📅 اضغط هنا لتأكيد حجزك عبر الواتساب'}</span>
             </button>
           </form>
 
-          {/* شارة الضمان والسرعة */}
+          {/* شارة الضمان */}
           <div className="pt-3 text-center text-[10px] text-slate-400 font-semibold space-y-1 border-t border-slate-100">
             <p>🔒 يتم تأكيد طلبك وشحنه فوراً بعد إرسال رسالة الواتساب</p>
             <p className="text-purple-600 font-bold">مدعوم بواسطة نظام البيع السريع Aipudio-LP ⚡</p>
@@ -648,18 +690,20 @@ export default function LandingView({ params }) {
 
       </div>
 
-      {/* 2. شريط الشراء العائم للموبايل (Sticky Bottom Mobile Bar) */}
+      {/* الشريط العائم للموبايل */}
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-3 shadow-2xl block sm:hidden">
         <div className="max-w-md mx-auto flex items-center justify-between gap-3">
-          <div>
-            <span className="text-[10px] text-slate-400 font-bold block">المبلغ المطلوب:</span>
-            <span className="text-lg font-black text-purple-700 leading-tight">{grandTotal} ج.م</span>
-          </div>
+          {!isBooking && (
+            <div>
+              <span className="text-[10px] text-slate-400 font-bold block">المبلغ المطلوب:</span>
+              <span className="text-lg font-black text-purple-700 leading-tight">{grandTotal} ج.م</span>
+            </div>
+          )}
           <button
             onClick={scrollToForm}
-            className="flex-1 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-black rounded-xl text-xs shadow-md shadow-emerald-600/20 active:scale-95 transition"
+            className={`flex-1 py-3 bg-gradient-to-r ${currentTheme.primaryBtn} text-white font-black rounded-xl text-xs shadow-md active:scale-95 transition`}
           >
-            اطلب الآن عبر الواتساب ⚡
+            {!isBooking ? 'اطلب الآن عبر الواتساب ⚡' : 'احجز موعدك الآن ⚡'}
           </button>
         </div>
       </div>
