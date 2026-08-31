@@ -53,7 +53,7 @@ export default function AdminDashboard() {
 
     setCurrentProfile(profile)
 
-    // جلب كافة المشتركين وكافة الصفحات
+    // جلب كافة المشتركين (بما فيها البريد الإلكتروني) وكافة الصفحات
     const { data: profilesData } = await supabase
       .from('profiles')
       .select('*')
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     setLoading(false)
   }
 
-  // تفعيل الاشتراك لمدة محددة من اليوم (تمنع تراكم الضغطات بالخطأ)
+  // تفعيل الاشتراك لمدة محددة من اليوم (تمنع تكرار الضغط بالخطأ)
   const handleSetSubscription = async (userId, days, planType) => {
     setActionLoading(userId)
     const newEndDate = new Date()
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
     setActionLoading(null)
   }
 
-  // إلغاء أو تجميد الاشتراك فوراً (لتصحيح أي خطأ)
+  // إلغاء أو تجميد الاشتراك فوراً
   const handleCancelSubscription = async (userId) => {
     if (!confirm('هل أنت متأكد من إيقاف وتجميد اشتراك هذا الحساب؟')) return
 
@@ -203,10 +203,12 @@ export default function AdminDashboard() {
     return acc
   }, 0)
 
-  // التصفية والبحث
+  // التصفية والبحث بالإيميل أو الـ ID
   const filteredSubscribers = subscribers.filter(sub => {
     const status = getSubscriptionStatus(sub)
-    const matchesSearch = sub.id?.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch =
+      (sub.email && sub.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (sub.id && sub.id.toLowerCase().includes(searchTerm.toLowerCase()))
 
     if (filterType === 'active') return matchesSearch && status.isActive
     if (filterType === 'trial') return matchesSearch && status.isTrial
@@ -217,8 +219,8 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-4">
-        <div className="flex items-center gap-3 bg-slate-800 p-6 rounded-2xl border border-slate-700 font-bold text-sm">
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="flex items-center gap-3 bg-slate-900 p-6 rounded-2xl border border-slate-800 font-bold text-sm">
           <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
           <span>جاري تحميل بيانات الإدارة...</span>
         </div>
@@ -242,7 +244,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-black text-white">لوحة الإدارة الشاملة</h1>
+                <h1 className="text-xl font-black text-white">لوحة الإدارة وتفعيل الاشتراكات</h1>
                 <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-extrabold uppercase ${
                   isSuperAdmin ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                 }`}>
@@ -366,25 +368,25 @@ export default function AdminDashboard() {
 
           <input
             type="text"
-            placeholder="بحث برقم المعرف User ID..."
+            placeholder="بحث بالبريد الإلكتروني (Gmail)..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs outline-none focus:border-purple-500 w-full sm:w-64"
+            className="p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs outline-none focus:border-purple-500 w-full sm:w-72"
           />
         </div>
 
-        {/* جدول إدارة المشتركين والعمليات */}
+        {/* جدول إدارة المشتركين بالبريد الإلكتروني */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-950/70 text-slate-400 font-bold border-b border-slate-800">
                 <tr>
-                  <th className="p-4">المشترك / الرتبة</th>
-                  <th className="p-4">الصفحة المنشورة</th>
+                  <th className="p-4">البريد الإلكتروني (Gmail)</th>
+                  <th className="p-4">صفحة النشاط</th>
                   <th className="p-4">حالة الاشتراك</th>
                   <th className="p-4">تاريخ الانتهاء</th>
-                  <th className="p-4 text-center">إجراءات الباقات (من اليوم)</th>
-                  <th className="p-4 text-center">تحكم دقيق / تصحيح</th>
+                  <th className="p-4 text-center">تفعيل الباقة (من اليوم)</th>
+                  <th className="p-4 text-center">تحكم دقيق / تجميد</th>
                   {isSuperAdmin && <th className="p-4 text-center">صلاحية المدير</th>}
                 </tr>
               </thead>
@@ -396,11 +398,11 @@ export default function AdminDashboard() {
 
                   return (
                     <tr key={sub.id} className="hover:bg-slate-800/40 transition">
-                      {/* المشترك */}
+                      {/* البريد الإلكتروني للمشترك */}
                       <td className="p-4">
                         <div className="space-y-1">
-                          <span className="font-mono text-[11px] text-slate-300 block select-all">
-                            {sub.id.substring(0, 8)}...{sub.id.substring(sub.id.length - 4)}
+                          <span className="font-extrabold text-xs text-white block font-mono select-all">
+                            {sub.email || `${sub.id.substring(0, 8)}...`}
                           </span>
                           <span className={`inline-block text-[9px] px-2 py-0.5 rounded font-extrabold ${
                             sub.role === 'super_admin' ? 'bg-purple-500/20 text-purple-300' :
@@ -455,14 +457,14 @@ export default function AdminDashboard() {
                           : 'غير محدد'}
                       </td>
 
-                      {/* أزرار الإجراءات الآمنة (من اليوم لتجنب التكرار) */}
+                      {/* أزرار الإجراءات الآمنة (من اليوم) */}
                       <td className="p-4">
                         <div className="flex justify-center items-center gap-1.5">
                           <button
                             disabled={isProcessing}
                             onClick={() => handleSetSubscription(sub.id, 30, 'monthly')}
-                            className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
-                                                        title="تفعيل 30 يوماً تبدأ من اليوم"
+                                                        className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
+                            title="تفعيل 30 يوماً تبدأ من اليوم"
                           >
                             + شهر
                           </button>
@@ -574,5 +576,4 @@ export default function AdminDashboard() {
       )}
     </div>
   )
-                      }
-                                
+}
