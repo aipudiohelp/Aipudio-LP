@@ -164,9 +164,9 @@ export default function LandingView({ params }) {
   const isBooking = page?.template_type === 'booking'
   const currentTheme = THEMES[page?.template_type] || THEMES.product_flash
 
-  // حساب مصاريف الشحن
+// حساب مصاريف الشحن الملتزم بإعدادات التاجر
   const getShippingCost = () => {
-    if (!page || page.shipping_type === 'free' || quantity >= 2) return 0
+    if (!page || page.shipping_type === 'free') return 0
     if (page.shipping_type === 'flat') return Number(page.shipping_flat_rate) || 0
 
     const currentGov = GOVERNORATES.find(g => g.name === selectedGov)
@@ -206,19 +206,18 @@ export default function LandingView({ params }) {
     }
   }
 
-  // حساب الفاتورة
+  // حساب الفاتورة المعتمد 100% على مدخلات التاجر
   const singleUnitPrice = Number(page?.product_price) || 0
   const rawSubtotal = singleUnitPrice * quantity
-  const bundleBonusDiscount = quantity === 3 ? 50 : 0
   const couponDiscount = appliedCoupon ? appliedCoupon.amount : 0
-  const totalProductPrice = Math.max(0, rawSubtotal - bundleBonusDiscount - couponDiscount)
+  const totalProductPrice = Math.max(0, rawSubtotal - couponDiscount)
   const shippingCost = getShippingCost()
   const grandTotal = totalProductPrice + shippingCost
 
   const originalPriceNum = Number(page?.original_price) || 0
   const savingsAmount = originalPriceNum > singleUnitPrice 
-    ? ((originalPriceNum - singleUnitPrice) * quantity) + bundleBonusDiscount + couponDiscount 
-    : bundleBonusDiscount + couponDiscount
+    ? ((originalPriceNum - singleUnitPrice) * quantity) + couponDiscount 
+    : couponDiscount
 
   const scrollToForm = () => {
     document.getElementById('order-form')?.scrollIntoView({ behavior: 'smooth' })
@@ -435,54 +434,29 @@ export default function LandingView({ params }) {
             </div>
           </div>
 
-          {/* باقات الكميات لرفع المبيعات (AOV) */}
+      {/* عداد اختيار الكمية */}
           {!isBooking && (
-            <div className="space-y-2 pt-1">
-              <span className="text-xs font-black text-slate-800 block">اختر العرض المناسب لك:</span>
-              <div className="grid grid-cols-3 gap-2">
-                
+            <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-black text-slate-800 block">الكمية المطلوبة:</span>
+                <span className="text-[10px] text-slate-500">حدد عدد القطع التي ترغب في طلبها</span>
+              </div>
+              <div className="flex items-center gap-3 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-xs">
                 <button
                   type="button"
-                  onClick={() => setQuantity(1)}
-                  className={`p-2.5 rounded-2xl border-2 text-center transition flex flex-col items-center justify-between ${
-                    quantity === 1 ? 'border-purple-600 bg-purple-50/70 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
+                  onClick={() => setQuantity(prev => Math.max(1, prev - 1))}
+                  className="w-7 h-7 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-800 font-black text-sm flex items-center justify-center transition active:scale-95"
                 >
-                  <span className="text-xs font-black text-slate-800">قطعة واحدة</span>
-                  <span className="text-[11px] font-bold text-purple-700">{singleUnitPrice} ج</span>
-                  <span className="text-[9px] text-slate-400 font-semibold">سعر قياسي</span>
+                  -
                 </button>
-
+                <span className="font-mono font-black text-sm text-purple-700 w-5 text-center">{quantity}</span>
                 <button
                   type="button"
-                  onClick={() => setQuantity(2)}
-                  className={`p-2.5 rounded-2xl border-2 text-center transition relative flex flex-col items-center justify-between ${
-                    quantity === 2 ? 'border-purple-600 bg-purple-50/70 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
+                  onClick={() => setQuantity(prev => prev + 1)}
+                  className="w-7 h-7 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-black text-sm flex items-center justify-center transition active:scale-95"
                 >
-                  <div className="absolute -top-2.5 bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
-                    الأكثر طلباً ⭐
-                  </div>
-                  <span className="text-xs font-black text-slate-800">قطعتان (2)</span>
-                  <span className="text-[11px] font-bold text-purple-700">{singleUnitPrice * 2} ج</span>
-                  <span className="text-[9px] text-emerald-600 font-black">شحن مجاني 🎁</span>
+                  +
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => setQuantity(3)}
-                  className={`p-2.5 rounded-2xl border-2 text-center transition relative flex flex-col items-center justify-between ${
-                    quantity === 3 ? 'border-purple-600 bg-purple-50/70 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
-                >
-                  <div className="absolute -top-2.5 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full shadow-xs">
-                    توفير 50 ج 🔥
-                  </div>
-                  <span className="text-xs font-black text-slate-800">3 قطع</span>
-                  <span className="text-[11px] font-bold text-purple-700">{(singleUnitPrice * 3) - 50} ج</span>
-                  <span className="text-[9px] text-emerald-600 font-black">شحن مجاني 🎁</span>
-                </button>
-
               </div>
             </div>
           )}
@@ -596,18 +570,12 @@ export default function LandingView({ params }) {
                   </div>
                 )}
 
-                {/* ملخص الحساب النهائي */}
+               {/* ملخص الحساب النهائي */}
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-700">
                   <div className="flex justify-between">
-                    <span>المنتجات ({quantity} قطعة):</span>
+                    <span>المنتجات ({quantity} {quantity === 1 ? 'قطعة' : 'قطع'}):</span>
                     <strong>{rawSubtotal} ج.م</strong>
                   </div>
-                  {bundleBonusDiscount > 0 && (
-                    <div className="flex justify-between text-emerald-600 font-bold">
-                      <span>خصم باقة الـ 3 قطع:</span>
-                      <span>- {bundleBonusDiscount} ج.م</span>
-                    </div>
-                  )}
                   {appliedCoupon && (
                     <div className="flex justify-between text-emerald-600 font-bold">
                       <span>خصم الكوبون:</span>
@@ -623,8 +591,6 @@ export default function LandingView({ params }) {
                     <span className="text-purple-700 text-base font-black">{grandTotal} ج.م</span>
                   </div>
                 </div>
-              </>
-            )}
 
             {/* الحقول الخاصة بقالب الحجوزات */}
             {isBooking && (
