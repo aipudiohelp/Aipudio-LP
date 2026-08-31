@@ -164,7 +164,7 @@ export default function LandingView({ params }) {
   const isBooking = page?.template_type === 'booking'
   const currentTheme = THEMES[page?.template_type] || THEMES.product_flash
 
-// حساب مصاريف الشحن الملتزم بإعدادات التاجر
+  // حساب مصاريف الشحن الملتزم بإعدادات التاجر
   const getShippingCost = () => {
     if (!page || page.shipping_type === 'free') return 0
     if (page.shipping_type === 'flat') return Number(page.shipping_flat_rate) || 0
@@ -434,7 +434,7 @@ export default function LandingView({ params }) {
             </div>
           </div>
 
-      {/* عداد اختيار الكمية */}
+          {/* عداد اختيار الكمية */}
           {!isBooking && (
             <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 flex items-center justify-between">
               <div>
@@ -481,7 +481,7 @@ export default function LandingView({ params }) {
             </div>
           )}
 
-          {/* نموذج إدخال البيانات المكتمل (مع العنوان والمحافظة) */}
+          {/* نموذج إدخال البيانات المكتمل */}
           <form id="order-form" onSubmit={handleSubmit} className="space-y-3 pt-2">
             <div className="text-center pb-1">
               <h3 className="text-sm font-black text-slate-900">أدخل بياناتك لتأكيد الطلب ✍️</h3>
@@ -515,7 +515,7 @@ export default function LandingView({ params }) {
             {/* الحقول الخاصة بالمنتجات والشحن */}
             {!isBooking && (
               <>
-                {page.shipping_type === 'zones' && quantity === 1 && (
+                {page.shipping_type === 'zones' && (
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-slate-700 block">اختر محافظتك:</label>
                     <select
@@ -570,7 +570,7 @@ export default function LandingView({ params }) {
                   </div>
                 )}
 
-               {/* ملخص الحساب النهائي */}
+                {/* ملخص الحساب النهائي */}
                 <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 text-xs space-y-1.5 text-slate-700">
                   <div className="flex justify-between">
                     <span>المنتجات ({quantity} {quantity === 1 ? 'قطعة' : 'قطع'}):</span>
@@ -591,6 +591,8 @@ export default function LandingView({ params }) {
                     <span className="text-purple-700 text-base font-black">{grandTotal} ج.م</span>
                   </div>
                 </div>
+              </>
+            )}
 
             {/* الحقول الخاصة بقالب الحجوزات */}
             {isBooking && (
