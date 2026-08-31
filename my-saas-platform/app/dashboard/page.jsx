@@ -767,8 +767,20 @@ export default function Dashboard() {
           </form>
         </div>
 
+        {/* زر واتساب عائم للدعم الفني المباشر */}
+        <a
+          href="https://wa.me/201005825888?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9%20%D9%81%D9%8A%20%D8%A5%D8%B9%D8%AF%D8%A7%D8%AF%20%D8%B5%D9%81%D8%AD%D8%AA%D9%8A%20%D8%B9%D9%84%D9%89%20Aipudio-LP"
+          target="_blank"
+          rel="noreferrer"
+          className="fixed bottom-5 left-5 z-50 bg-[#25D366] hover:bg-[#20ba59] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 transition hover:scale-105 active:scale-95"
+          title="تواصل مع الدعم الفني"
+        >
+          <span className="text-xl">💬</span>
+          <span className="text-xs font-bold hidden sm:inline">مساعدة سريعة؟</span>
+        </a>
+
       </div>
     </div>
   )
-                }
-                
+}
+
