@@ -76,6 +76,12 @@ export default function Dashboard() {
     coupon_code: '',
     discount_type: 'percentage',
     discount_value: '',
+    // عروض الباقات والكميات المخصصة
+    enable_bundles: false,
+    bundle_2_price: '',
+    bundle_2_free_shipping: true,
+    bundle_3_price: '',
+    bundle_3_free_shipping: true,
     // الشحن
     shipping_type: 'free',
     shipping_flat_rate: '50',
@@ -160,6 +166,11 @@ export default function Dashboard() {
       coupon_code: page.coupon_code || '',
       discount_type: page.discount_type || 'percentage',
       discount_value: page.discount_value || '',
+      enable_bundles: Boolean(page.enable_bundles),
+      bundle_2_price: page.bundle_2_price || '',
+      bundle_2_free_shipping: page.bundle_2_free_shipping ?? true,
+      bundle_3_price: page.bundle_3_price || '',
+      bundle_3_free_shipping: page.bundle_3_free_shipping ?? true,
       shipping_type: page.shipping_type || 'free',
       shipping_flat_rate: page.shipping_flat_rate || '50',
       shipping_cairo: page.shipping_cairo || '40',
@@ -357,12 +368,11 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* نافذة الدفع والتفعيل المطورة */}
+        {/* نافذة الدفع والتفعيل */}
         {showPaymentModal && (
           <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 text-right">
               
-              {/* هيدر النافذة */}
               <div className="flex justify-between items-start border-b border-slate-100 pb-3">
                 <div className="space-y-1">
                   <span className="inline-block px-2.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-black">
@@ -383,13 +393,11 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* المستفيد */}
               <div className="bg-slate-50 p-2.5 rounded-2xl border flex justify-between items-center text-xs">
                 <span className="text-slate-500">المستفيد المسجل:</span>
                 <strong className="text-slate-900">{PAYMENT_INFO.account_holder}</strong>
               </div>
 
-              {/* بيانات إنستاباي */}
               <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200 space-y-2 text-xs">
                 <span className="font-bold text-purple-950 block">⚡ إنستاباي (InstaPay):</span>
                 <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-purple-100">
@@ -414,7 +422,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* بيانات فودافون كاش */}
               <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-200 flex justify-between items-center text-xs">
                 <div>
                   <span className="text-slate-600 block text-[11px]">📱 فودافون كاش / محافظ إلكترونية:</span>
@@ -429,7 +436,6 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* الباقات */}
               <div className="bg-slate-50 p-3 rounded-2xl border text-xs space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="font-medium text-slate-600">• باقة شهرية (3 صفحات):</span>
@@ -441,7 +447,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* زر إرسال الإشعار والتفعيل الفوري */}
               <button
                 onClick={() => {
                   const msg = `مرحباً، قمت بتحويل مبلغ الاشتراك الشهري (99 ج.م) لحسابي في منصة Aipudio-LP:\n📧 البريد: ${user?.email || ''}\nوهذا إيصال التحويل لتفعيل حسابي فوراً ✅`
@@ -461,7 +466,7 @@ export default function Dashboard() {
           </div>
         )}
 
-                {/* قائمة الصفحات المنشورة */}
+        {/* قائمة الصفحات المنشورة */}
         <div className="bg-white p-5 sm:p-6 rounded-3xl border border-slate-100 shadow-sm space-y-4">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
@@ -520,14 +525,14 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* نموذج إنشاء وتعديل الصفحة مع المنظومة المطورة */}
+        {/* نموذج إنشاء وتعديل الصفحة */}
         <div id="form-section" className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-slate-100 space-y-6">
           <div className="flex justify-between items-center border-b border-slate-100 pb-3">
             <div>
               <h2 className="text-base font-extrabold text-slate-900">
                 {editingPageId ? '✏️ تعديل بيانات الصفحة المحددة' : '✨ إنشاء ونشر صفحة هبوط جديدة'}
               </h2>
-              <p className="text-[11px] text-slate-400">اختر القالب الأنسب لنشاطك، وحدد الأسعار والشحن لنشر الرابط فوراً</p>
+              <p className="text-[11px] text-slate-400">اختر القالب الأنسب لنشاطك، وحدد الأسعار والعروض لنشر الرابط فوراً</p>
             </div>
             {editingPageId && (
               <button type="button" onClick={resetToNew} className="text-xs text-purple-700 hover:underline font-bold">
@@ -617,13 +622,13 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* 3. إعدادات الأسعار والكوبونات والشحن لقوالب المتاجر والمنتجات */}
+            {/* 3. إعدادات الأسعار والكوبونات والعروض والشحن */}
             {isProductTemplate && (
               <div className="space-y-4 pt-1">
                 {/* الأسعار الأساسية */}
                 <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-100 space-y-3 text-xs">
                   <h3 className="font-extrabold text-purple-950 flex items-center gap-1.5">
-                    <span>💵</span> إعدادات التسعير والعرض
+                    <span>💵</span> إعدادات التسعير الأساسي (للقطعة الواحدة)
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -639,7 +644,7 @@ export default function Dashboard() {
                     </div>
 
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1">السعر الحالي بعد الخصم (ج.م):</label>
+                      <label className="font-bold text-slate-700 block mb-1">سعر بيع القطعة الواحدة (ج.م):</label>
                       <input
                         type="text"
                         required
@@ -648,9 +653,91 @@ export default function Dashboard() {
                         onChange={e => setFormData({ ...formData, product_price: e.target.value })}
                         className="w-full p-2.5 border border-purple-200 rounded-xl bg-white outline-none focus:border-purple-500 font-bold"
                       />
-                      <span className="text-[10px] text-slate-500">سعر البيع الفعلي المطلوب من المشتري.</span>
+                      <span className="text-[10px] text-slate-500">سعر القطعة الأساسي عند طلب كمية 1.</span>
                     </div>
                   </div>
+                </div>
+
+                {/* عروض الكميات والباقات المخصصة (تحكم كامل للتاجر) */}
+                <div className="p-4 bg-amber-50/60 rounded-2xl border border-amber-200 space-y-3.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base">🎁</span>
+                      <div>
+                        <strong className="text-xs font-black text-amber-950 block">عروض الباقات والكميات (اختياري)</strong>
+                        <span className="text-[10px] text-amber-800">فعّل عروض التوفير وشجع العميل على شراء أكثر من قطعة</span>
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.enable_bundles}
+                        onChange={e => setFormData({ ...formData, enable_bundles: e.target.checked })}
+                        className="sr-only peer"
+                      />
+                      <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
+                    </label>
+                  </div>
+
+                  {formData.enable_bundles && (
+                    <div className="space-y-3 pt-2 border-t border-amber-200/80">
+                      {/* عرض القطعتين */}
+                      <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-2">
+                        <span className="font-bold text-slate-800 block text-[11px]">⭐ عرض القطعتين (2 قطع):</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-slate-600 block text-[10px] mb-1">إجمالي سعر القطعتين معاً (ج.م):</label>
+                            <input
+                              type="text"
+                              placeholder="مثال: 600 (بدلاً من 700)"
+                              value={formData.bundle_2_price}
+                              onChange={e => setFormData({ ...formData, bundle_2_price: e.target.value })}
+                              className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-amber-500 font-bold"
+                            />
+                          </div>
+                          <div className="flex items-center pt-4">
+                            <label className="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={formData.bundle_2_free_shipping}
+                                onChange={e => setFormData({ ...formData, bundle_2_free_shipping: e.target.checked })}
+                                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                              />
+                              <span>🎁 شحن مجاني لهذا العرض</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* عرض الـ 3 قطع */}
+                      <div className="bg-white p-3 rounded-xl border border-amber-200 space-y-2">
+                        <span className="font-bold text-slate-800 block text-[11px]">🔥 عرض الـ 3 قطع:</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-slate-600 block text-[10px] mb-1">إجمالي سعر الـ 3 قطع معاً (ج.م):</label>
+                            <input
+                              type="text"
+                              placeholder="مثال: 850 (بدلاً من 1050)"
+                              value={formData.bundle_3_price}
+                              onChange={e => setFormData({ ...formData, bundle_3_price: e.target.value })}
+                              className="w-full p-2 border border-slate-200 rounded-lg outline-none focus:border-amber-500 font-bold"
+                            />
+                          </div>
+                          <div className="flex items-center pt-4">
+                            <label className="flex items-center gap-2 cursor-pointer text-[11px] font-bold text-slate-700">
+                              <input
+                                type="checkbox"
+                                checked={formData.bundle_3_free_shipping}
+                                onChange={e => setFormData({ ...formData, bundle_3_free_shipping: e.target.checked })}
+                                className="w-4 h-4 rounded text-amber-600 focus:ring-amber-500"
+                              />
+                              <span>🎁 شحن مجاني لهذا العرض</span>
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* منظومة الكوبونات */}
@@ -816,7 +903,7 @@ export default function Dashboard() {
                 rows="4"
                 placeholder="اكتب هنا نقاط القوة ومميزات المنتج بشكل نقاط منظمة لسهولة القراءة..."
                 value={formData.description}
-                                onChange={e => setFormData({ ...formData, description: e.target.value })}
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
                 className="w-full p-3 border border-slate-200 rounded-2xl outline-none focus:border-purple-500 bg-white"
               ></textarea>
             </div>
@@ -905,7 +992,7 @@ export default function Dashboard() {
           </form>
         </div>
 
-        {/* زر واتساب عائم للدعم الفني المباشر */}
+        {/* زر واتساب عائم للدعم الفني */}
         <a
           href="https://wa.me/201005825888?text=%D9%85%D8%B1%D8%AD%D8%A8%D8%A7%D9%8B%D8%8C%20%D8%A3%D8%AD%D8%AA%D8%A7%D8%AC%20%D9%85%D8%B3%D8%A7%D8%B9%D8%AF%D8%A9%20%D9%81%D9%8A%20%D8%A5%D8%B9%D8%AF%D8%A7%D8%AF%20%D8%B5%D9%81%D8%AD%D8%AA%D9%8A%20%D8%B9%D9%84%D9%89%20Aipudio-LP"
           target="_blank"
@@ -920,5 +1007,4 @@ export default function Dashboard() {
       </div>
     </div>
   )
-                    }
-                
+}
