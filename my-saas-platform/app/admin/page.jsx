@@ -5,9 +5,9 @@ import Link from 'next/link'
 
 // أسعار الباقات المعتمدة لحساب الإيرادات التقديرية (ج.م)
 const PLAN_PRICES = {
-  monthly: 250,
-  quarterly: 600,
-  yearly: 1800,
+  monthly: 99,
+  quarterly: 250,
+  yearly: 800,
 }
 
 export default function AdminDashboard() {
@@ -53,7 +53,7 @@ export default function AdminDashboard() {
 
     setCurrentProfile(profile)
 
-    // جلب كافة المشتركين (بما فيها البريد الإلكتروني) وكافة الصفحات
+    // جلب كافة المشتركين وكافة الصفحات وإحصائياتها
     const { data: profilesData } = await supabase
       .from('profiles')
       .select('*')
@@ -61,14 +61,14 @@ export default function AdminDashboard() {
 
     const { data: pagesData } = await supabase
       .from('landing_pages')
-      .select('id, user_id, slug, business_name, template_type, views_count, clicks_count')
+      .select('*')
 
     setSubscribers(profilesData || [])
     setPages(pagesData || [])
     setLoading(false)
   }
 
-  // تفعيل الاشتراك لمدة محددة من اليوم (تمنع تكرار الضغط بالخطأ)
+  // تفعيل الاشتراك لمدة محددة من اليوم
   const handleSetSubscription = async (userId, days, planType) => {
     setActionLoading(userId)
     const newEndDate = new Date()
@@ -188,11 +188,16 @@ export default function AdminDashboard() {
     return { text: 'مشترك نشط', color: 'emerald', isActive: true }
   }
 
-  // إحصائيات النظام
+  // إحصائيات النظام العامة
   const totalUsers = subscribers.length
   const activeSubs = subscribers.filter(s => getSubscriptionStatus(s).isActive).length
   const trialSubs = subscribers.filter(s => getSubscriptionStatus(s).isTrial).length
   const expiredSubs = subscribers.filter(s => getSubscriptionStatus(s).isExpired).length
+
+  // إحصائيات التفاعل والزيارات والطلبات على مستوى المنصة
+  const totalPagesCount = pages.length
+  const totalPlatformViews = pages.reduce((acc, p) => acc + (p.views_count || p.views || 0), 0)
+  const totalPlatformOrders = pages.reduce((acc, p) => acc + (p.clicks_count || p.orders || 0), 0)
 
   // حساب الإيرادات التقديرية (خاص بالمدير العام)
   const estimatedRevenue = subscribers.reduce((acc, sub) => {
@@ -265,26 +270,41 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* كروت الإحصائيات العامة */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        {/* كروت الإحصائيات العامة للمشتركين والنشاط */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-            <span className="text-xs text-slate-400 font-semibold block">إجمالي المسجلين</span>
+            <span className="text-[11px] text-slate-400 font-semibold block">إجمالي المسجلين</span>
             <span className="text-2xl font-black text-white">{totalUsers}</span>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-            <span className="text-xs text-emerald-400 font-semibold block">المشتركون النشطون</span>
+            <span className="text-[11px] text-emerald-400 font-semibold block">المشتركون النشطون</span>
             <span className="text-2xl font-black text-emerald-400">{activeSubs}</span>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-            <span className="text-xs text-amber-400 font-semibold block">فترات تجريبية</span>
+            <span className="text-[11px] text-amber-400 font-semibold block">فترات تجريبية</span>
             <span className="text-2xl font-black text-amber-400">{trialSubs}</span>
           </div>
 
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
-            <span className="text-xs text-rose-400 font-semibold block">حسابات منتهية</span>
+            <span className="text-[11px] text-rose-400 font-semibold block">حسابات منتهية</span>
             <span className="text-2xl font-black text-rose-400">{expiredSubs}</span>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+            <span className="text-[11px] text-cyan-400 font-semibold block">الصفحات المنشورة</span>
+            <span className="text-2xl font-black text-cyan-400">{totalPagesCount}</span>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+            <span className="text-[11px] text-purple-400 font-semibold block">إجمالي الزيارات</span>
+            <span className="text-2xl font-black text-purple-400">{totalPlatformViews}</span>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl space-y-1">
+            <span className="text-[11px] text-emerald-400 font-semibold block">إجمالي الطلبات</span>
+            <span className="text-2xl font-black text-emerald-400">{totalPlatformOrders}</span>
           </div>
         </div>
 
@@ -375,25 +395,28 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* جدول إدارة المشتركين بالبريد الإلكتروني */}
+        {/* جدول إدارة المشتركين مع تقارير الزيارات والطلبات الحية */}
         <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-xl">
           <div className="overflow-x-auto">
             <table className="w-full text-right text-xs">
               <thead className="bg-slate-950/70 text-slate-400 font-bold border-b border-slate-800">
                 <tr>
-                  <th className="p-4">البريد الإلكتروني (Gmail)</th>
-                  <th className="p-4">صفحة النشاط</th>
+                  <th className="p-4">البريد الإلكتروني</th>
+                  <th className="p-4">صفحات المشترك</th>
+                  <th className="p-4 text-center">الزيارات والطلبات</th>
                   <th className="p-4">حالة الاشتراك</th>
                   <th className="p-4">تاريخ الانتهاء</th>
-                  <th className="p-4 text-center">تفعيل الباقة (من اليوم)</th>
-                  <th className="p-4 text-center">تحكم دقيق / تجميد</th>
+                  <th className="p-4 text-center">تفعيل الباقة</th>
+                  <th className="p-4 text-center">تحكم / تجميد</th>
                   {isSuperAdmin && <th className="p-4 text-center">صلاحية المدير</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {filteredSubscribers.map(sub => {
                   const status = getSubscriptionStatus(sub)
-                  const userPage = pages.find(p => p.user_id === sub.id)
+                  const userPagesList = pages.filter(p => p.user_id === sub.id)
+                  const userViews = userPagesList.reduce((acc, p) => acc + (p.views_count || p.views || 0), 0)
+                  const userOrders = userPagesList.reduce((acc, p) => acc + (p.clicks_count || p.orders || 0), 0)
                   const isProcessing = actionLoading === sub.id
 
                   return (
@@ -413,23 +436,39 @@ export default function AdminDashboard() {
                         </div>
                       </td>
 
-                      {/* صفحة النشاط */}
+                      {/* صفحات المشترك وروابطها */}
                       <td className="p-4">
-                        {userPage ? (
-                          <div>
-                            <span className="font-bold text-slate-200 block">{userPage.business_name}</span>
-                            <a
-                              href={`https://lp.aipudio.online/${userPage.slug}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] text-purple-400 hover:underline font-mono dir-ltr inline-block"
-                            >
-                              /{userPage.slug}
-                            </a>
+                        {userPagesList.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {userPagesList.map(p => (
+                              <div key={p.id} className="text-xs">
+                                <span className="font-bold text-slate-200 block truncate max-w-[160px]">{p.business_name || 'صفحة بدون اسم'}</span>
+                                <a
+                                  href={`https://lp.aipudio.online/${p.slug}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-[11px] text-purple-400 hover:underline font-mono dir-ltr inline-block"
+                                >
+                                  /{p.slug}
+                                </a>
+                              </div>
+                            ))}
                           </div>
                         ) : (
-                          <span className="text-slate-500 text-[11px]">لم ينشئ صفحة</span>
+                          <span className="text-slate-500 text-[11px]">لم ينشئ صفحات</span>
                         )}
+                      </td>
+
+                      {/* إحصائيات الزيارات والطلبات لكل مستخدم */}
+                                            {/* إحصائيات الزيارات والطلبات لكل مستخدم */}
+                      <td className="p-4 text-center">
+                        <div className="inline-flex flex-col items-center gap-1 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+                          <div className="flex items-center gap-2 text-[11px] font-bold">
+                            <span className="text-cyan-400">👁️ {userViews}</span>
+                            <span className="text-slate-600">|</span>
+                            <span className="text-emerald-400">💬 {userOrders} طلب</span>
+                          </div>
+                        </div>
                       </td>
 
                       {/* حالة الاشتراك */}
@@ -457,14 +496,14 @@ export default function AdminDashboard() {
                           : 'غير محدد'}
                       </td>
 
-                      {/* أزرار الإجراءات الآمنة (من اليوم) */}
+                      {/* أزرار التفعيل السريع */}
                       <td className="p-4">
                         <div className="flex justify-center items-center gap-1.5">
                           <button
                             disabled={isProcessing}
                             onClick={() => handleSetSubscription(sub.id, 30, 'monthly')}
-                                                        className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
-                            title="تفعيل 30 يوماً تبدأ من اليوم"
+                            className="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600 text-emerald-300 hover:text-white border border-emerald-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
+                            title="تفعيل 30 يوماً"
                           >
                             + شهر
                           </button>
@@ -472,7 +511,7 @@ export default function AdminDashboard() {
                             disabled={isProcessing}
                             onClick={() => handleSetSubscription(sub.id, 90, 'quarterly')}
                             className="px-2.5 py-1.5 bg-cyan-600/20 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
-                            title="تفعيل 90 يوماً تبدأ من اليوم"
+                            title="تفعيل 90 يوماً"
                           >
                             + 3 أشهر
                           </button>
@@ -480,14 +519,14 @@ export default function AdminDashboard() {
                             disabled={isProcessing}
                             onClick={() => handleSetSubscription(sub.id, 365, 'yearly')}
                             className="px-2.5 py-1.5 bg-purple-600/20 hover:bg-purple-600 text-purple-300 hover:text-white border border-purple-500/30 rounded-lg font-bold text-[10px] transition disabled:opacity-50"
-                            title="تفعيل سنة تبدأ من اليوم"
+                            title="تفعيل سنة"
                           >
                             + سنة
                           </button>
                         </div>
                       </td>
 
-                      {/* تحكم دقيق وتصحيح الأخطاء */}
+                      {/* تحكم دقيق وتجميد */}
                       <td className="p-4">
                         <div className="flex justify-center items-center gap-1.5">
                           <button
@@ -496,7 +535,7 @@ export default function AdminDashboard() {
                               setSelectedCustomDate(sub.subscription_end ? sub.subscription_end.split('T')[0] : '')
                             }}
                             className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs transition"
-                            title="تحديد تاريخ انتهاء محدد يدوياً"
+                            title="تحديد تاريخ انتهاء مخصص"
                           >
                             📅
                           </button>
@@ -511,7 +550,7 @@ export default function AdminDashboard() {
                         </div>
                       </td>
 
-                      {/* صلاحية المشرف (خاص بالـ Super Admin) */}
+                      {/* صلاحية المشرف */}
                       {isSuperAdmin && (
                         <td className="p-4 text-center">
                           {sub.role !== 'super_admin' ? (
@@ -576,4 +615,5 @@ export default function AdminDashboard() {
       )}
     </div>
   )
-}
+                      }
+                                                                                                      
