@@ -237,9 +237,9 @@ export default function Dashboard() {
   const remainingPages = Math.max(0, maxPages - usedPages)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-500 selection:text-white py-6 px-4 sm:px-8">
+    <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-purple-500 selection:text-white py-6 px-4 sm:px-8 pb-28">
       <div className="max-w-4xl mx-auto space-y-6">
-        
+
         {/* الهيدر العلوي */}
         <div className="flex justify-between items-center bg-white p-4 sm:p-5 rounded-3xl shadow-sm border border-slate-100">
           <div className="flex items-center gap-3">
@@ -263,7 +263,7 @@ export default function Dashboard() {
             <Link href="/" className="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl transition text-xs font-bold">
               🏠
             </Link>
-            {profile?.role === 'super_admin' && (
+            {(profile?.role === 'super_admin' || profile?.role === 'admin') && (
               <Link href="/admin" className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-95 transition">
                 👑 الإدارة
               </Link>
@@ -294,7 +294,7 @@ export default function Dashboard() {
               </span>
             </div>
             <p className="text-xs text-slate-600">
-              {isSubscriptionActive ? `متبقي ${daysLeft} يوماً (ينتهي: ${endDate?.toLocaleDateString('ar-EG')})` : 'يرجى تجديد الاشتراك لإعادة التفعيل.'}
+              {isSubscriptionActive ? `متبقي ${daysLeft} يوماً (ينتهي: ${endDate?.toLocaleDateString('ar-EG')})` : 'يرجى تجديد الاشتراك للاستمرار في استقبال الطلبات.'}
             </p>
             <div className="pt-1 flex items-center gap-2">
               <span className="bg-white/90 border border-purple-200/80 text-purple-900 font-bold text-xs px-3 py-1 rounded-xl shadow-xs">
@@ -307,56 +307,110 @@ export default function Dashboard() {
             onClick={() => setShowPaymentModal(true)}
             className="w-full sm:w-auto px-5 py-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-500 hover:from-purple-700 hover:to-cyan-600 text-white font-extrabold text-xs rounded-2xl shadow-lg shadow-purple-500/20 transition transform active:scale-95"
           >
-            💳 تفعيل / ترقية الاشتراك
+            💳 تفعيل / ترقية الاشتراك (99 ج.م) ⚡
           </button>
         </div>
 
-        {/* نافذة الدفع */}
+        {/* نافذة الدفع والتفعيل المطورة */}
         {showPaymentModal && (
-          <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4">
-              <div className="flex justify-between items-center border-b pb-3">
-                <h3 className="font-extrabold text-base text-slate-900">باقات الاشتراك والتفعيل</h3>
-                <button onClick={() => setShowPaymentModal(false)} className="w-8 h-8 rounded-full bg-slate-100 text-slate-600 font-bold text-sm">✕</button>
-              </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border flex justify-between text-xs">
-                <span className="text-slate-500">المستفيد:</span>
-                <strong className="text-slate-900">{PAYMENT_INFO.account_holder}</strong>
-              </div>
-              <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200 space-y-2 text-xs">
-                <span className="font-bold text-purple-950 block">⚡ إنستاباي (InstaPay):</span>
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border">
-                  <span className="font-mono font-bold text-[11px]">{PAYMENT_INFO.instapay_id}</span>
-                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'id')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-lg">
-                    {copiedKey === 'id' ? 'تم النسخ ✅' : 'نسخ 📋'}
-                  </button>
+          <div className="fixed inset-0 bg-slate-950/75 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-100 space-y-4 text-right">
+              
+              {/* هيدر النافذة */}
+              <div className="flex justify-between items-start border-b border-slate-100 pb-3">
+                <div className="space-y-1">
+                  <span className="inline-block px-2.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-[10px] font-black">
+                    ⚡ تفعيل فوري بدون عمولات
+                  </span>
+                  <h3 className="font-black text-sm sm:text-base text-slate-900 leading-snug">
+                    استمر في استقبال أوردراتك بدون سلات متروكة بـ <span className="text-purple-600">99 ج.م فقط شهرياً</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    (أقل من 3.3 جنيه في اليوم) — التحويل متاح فوراً عبر إنستاباي وفودافون كاش ⚡
+                  </p>
                 </div>
-                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border">
-                  <span className="font-mono font-bold text-[11px]">{PAYMENT_INFO.instapay_phone}</span>
-                  <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'ph')} className="text-[11px] bg-purple-100 text-purple-800 font-bold px-2 py-1 rounded-lg">
-                    {copiedKey === 'ph' ? 'تم النسخ ✅' : 'نسخ 📋'}
-                  </button>
-                </div>
-              </div>
-              <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-200 flex justify-between items-center text-xs">
-                <span>📱 فودافون كاش: <strong>{PAYMENT_INFO.vodafone_cash}</strong></span>
-                <button type="button" onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vc')} className="text-[11px] bg-rose-100 text-rose-800 font-bold px-2 py-1 rounded-lg">
-                  {copiedKey === 'vc' ? 'تم النسخ ✅' : 'نسخ 📋'}
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs flex items-center justify-center transition shrink-0 mr-2"
+                >
+                  ✕
                 </button>
               </div>
-              <div className="bg-slate-50 p-3 rounded-2xl border text-xs space-y-1.5">
-                <div className="flex justify-between"><span>• شهري (3 صفحات):</span><strong>{PAYMENT_INFO.monthly_price}</strong></div>
-                <div className="flex justify-between"><span>• سنوي (10 صفحات):</span><strong className="text-purple-700">{PAYMENT_INFO.yearly_price} (خصم 35% 🔥)</strong></div>
+
+              {/* المستفيد */}
+              <div className="bg-slate-50 p-2.5 rounded-2xl border flex justify-between items-center text-xs">
+                <span className="text-slate-500">المستفيد المسجل:</span>
+                <strong className="text-slate-900">{PAYMENT_INFO.account_holder}</strong>
               </div>
+
+              {/* بيانات إنستاباي */}
+              <div className="bg-purple-50/70 p-3.5 rounded-2xl border border-purple-200 space-y-2 text-xs">
+                <span className="font-bold text-purple-950 block">⚡ إنستاباي (InstaPay):</span>
+                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-purple-100">
+                  <span className="font-mono font-bold text-[11px] dir-ltr text-purple-900">{PAYMENT_INFO.instapay_id}</span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(PAYMENT_INFO.instapay_id, 'id')}
+                    className="text-[10px] bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-2.5 py-1 rounded-lg transition"
+                  >
+                    {copiedKey === 'id' ? 'تم النسخ ✅' : 'نسخ المعرف 📋'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between bg-white px-3 py-2 rounded-xl border border-purple-100">
+                  <span className="font-mono font-bold text-[11px] dir-ltr text-purple-900">{PAYMENT_INFO.instapay_phone}</span>
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(PAYMENT_INFO.instapay_phone, 'ph')}
+                    className="text-[10px] bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-2.5 py-1 rounded-lg transition"
+                  >
+                    {copiedKey === 'ph' ? 'تم النسخ ✅' : 'نسخ الرقم 📋'}
+                  </button>
+                </div>
+              </div>
+
+              {/* بيانات فودافون كاش */}
+              <div className="bg-rose-50/60 p-3 rounded-2xl border border-rose-200 flex justify-between items-center text-xs">
+                <div>
+                  <span className="text-slate-600 block text-[11px]">📱 فودافون كاش / محافظ إلكترونية:</span>
+                  <strong className="font-mono font-bold text-rose-700 text-xs">{PAYMENT_INFO.vodafone_cash}</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyToClipboard(PAYMENT_INFO.vodafone_cash, 'vc')}
+                  className="text-[10px] bg-rose-100 hover:bg-rose-200 text-rose-800 font-bold px-2.5 py-1 rounded-lg transition"
+                >
+                  {copiedKey === 'vc' ? 'تم النسخ ✅' : 'نسخ الرقم 📋'}
+                </button>
+              </div>
+
+              {/* الباقات */}
+              <div className="bg-slate-50 p-3 rounded-2xl border text-xs space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-slate-600">• باقة شهرية (3 صفحات):</span>
+                  <strong className="text-slate-900 font-bold">{PAYMENT_INFO.monthly_price}</strong>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium text-slate-600">• باقة سنوية (10 صفحات):</span>
+                  <strong className="text-purple-700 font-bold">{PAYMENT_INFO.yearly_price} (وفر 35% 🔥)</strong>
+                </div>
+              </div>
+
+              {/* زر إرسال الإشعار والتفعيل الفوري */}
               <button
                 onClick={() => {
-                  const msg = `مرحباً، قمت بتحويل الاشتراك لمنصة Aipudio-LP:\n📧 البريد: ${user.email}\nمرفق الإشعار.`
+                  const msg = `مرحباً، قمت بتحويل مبلغ الاشتراك الشهري (99 ج.م) لحسابي في منصة Aipudio-LP:\n📧 البريد: ${user?.email || ''}\nوهذا إيصال التحويل لتفعيل حسابي فوراً ✅`
                   window.open(`https://wa.me/${PAYMENT_INFO.support_whatsapp}?text=${encodeURIComponent(msg)}`, '_blank')
                 }}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-extrabold rounded-2xl text-xs shadow-md"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white font-black rounded-2xl text-xs shadow-lg shadow-emerald-600/20 transition active:scale-95 flex items-center justify-center gap-2"
               >
-                💬 إرسال إشعار التحويل عبر واتساب للتفعيل
+                <span>💬</span>
+                <span>إرسال إشعار التحويل عبر واتساب للتفعيل الفوري</span>
               </button>
+
+              <p className="text-[10px] text-slate-400 text-center">
+                يتم تأكيد التحويل وتفعيل الباقة خلال دقائق معدودة من إرسال الرسالة ⚡
+              </p>
+
             </div>
           </div>
         )}
@@ -369,7 +423,7 @@ export default function Dashboard() {
               <p className="text-[11px] text-slate-400">يمكنك تعديل أي صفحة أو حذفها لتحرير المساحة فوراً</p>
             </div>
             {usedPages < maxPages && (
-              <button onClick={resetToNew} className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-sm">
+              <button onClick={resetToNew} className="px-3.5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-bold rounded-xl shadow-sm hover:opacity-95 transition">
                 ➕ إضافة صفحة جديدة
               </button>
             )}
@@ -395,7 +449,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2 text-xs">
                       <a href={`/${page.slug}`} target="_blank" rel="noreferrer" className="text-purple-700 font-mono font-bold hover:underline dir-ltr">
-                        /{page.slug}
+                        /{page.slug} ↗
                       </a>
                       <button type="button" onClick={() => copyPageLink(page.slug)} className="text-[10px] bg-white border px-2 py-0.5 rounded-md font-bold">
                         {copiedSlug === page.slug ? 'تم النسخ ✅' : 'نسخ الرابط 📋'}
@@ -407,8 +461,8 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button type="button" onClick={() => startEdit(page)} className="px-3.5 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl">✏️ تعديل</button>
-                    <button type="button" onClick={() => deletePage(page.id, page.business_name || page.slug)} className="px-3.5 py-2 bg-rose-50 text-rose-600 text-xs font-bold rounded-xl border border-rose-100">🗑️ حذف</button>
+                    <button type="button" onClick={() => startEdit(page)} className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition">✏️ تعديل</button>
+                    <button type="button" onClick={() => deletePage(page.id, page.business_name || page.slug)} className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-100 transition">🗑️ حذف</button>
                   </div>
                 </div>
               ))}
